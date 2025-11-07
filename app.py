@@ -1,5 +1,6 @@
 # app.py
-from flask import Flask, request, jsonify, make_response
+from flask import Flask, request, jsonify, make_response, Response
+from fpdf.enums import XPos, YPos
 from dotenv import load_dotenv
 from flask_cors import CORS
 import os 
@@ -103,7 +104,8 @@ def get_result(analysis_id):
 # --- PDF 보고서 생성 및 다운로드 API ---
 @app.route('/api/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
-    result = AnalysisResult.query.get(analysis_id)
+    # SQLAlchemy 2.0 권장 방식
+    result = db.session.get(AnalysisResult, analysis_id)
 
     if result is None:
         return jsonify({"result": "error", "message": "해당 ID의 분석 결과를 찾을 수 없습니다."}), 404
@@ -115,33 +117,36 @@ def get_report(analysis_id):
         pdf = FPDF()
         pdf.add_page()
         
-        pdf.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
+        pdf.add_font('Nanum', '', 'NanumGothic.ttf')
         
         pdf.set_font('Nanum', '', 24)
-        pdf.cell(0, 20, f'AI 흠집 탐지 분석 보고서 (ID: {result.id})', ln=True, align='C')
+        pdf.cell(0, 20, f'AI 흠집 탐지 분석 보고서 (ID: {result.id})', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         
-        response = requests.get(result.original_image_url)
-        image_bytes = io.BytesIO(response.content)
+        response_img = requests.get(result.original_image_url)
+        image_stream = io.BytesIO(response_img.content)
         
-        pdf.image(image_bytes, x=30, y=40, w=150)
-        pdf.ln(120) # 이미지 높이만큼 줄바꿈
+        pdf.image(image_stream, x=30, y=40, w=150)
+        
+        pdf.ln(120)
 
         pdf.set_font('Nanum', '', 16)
-        pdf.cell(0, 10, '분석 결과', ln=True)
+        pdf.cell(0, 10, '분석 결과', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         pdf.set_font('Nanum', '', 12)
         
         analysis_details = json.loads(result.analysis_data)
         for key, value in analysis_details.items():
-            pdf.cell(0, 8, f'- {key}: {value}', ln=True)
+            pdf.cell(0, 8, f'- {key}: {value}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
-        pdf_output = pdf.output(dest='S').encode('latin-1')
-        response = make_response(pdf_output)
-        response.headers.set('Content-Disposition', 'attachment', filename=f'report_{analysis_id}.pdf')
-        response.headers.set('Content-Type', 'application/pdf')
+        pdf_output = bytes(pdf.output())
         
-        return response
+        return Response(
+            pdf_output,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': f'attachment;filename=report_{analysis_id}.pdf'}
+        )
 
     except Exception as e:
+        print(f"!!!!!!!!!!!! PDF 생성 실제 오류: {e} !!!!!!!!!!!!")
         return jsonify({"result": "error", "message": f"PDF 생성 중 오류 발생: {str(e)}"}), 500
 
 # --- 앱 실행 코드  ---
