@@ -1,6 +1,7 @@
 # app.py
-from flask import Flask, request, jsonify, make_response 
+from flask import Flask, request, jsonify, make_response
 from dotenv import load_dotenv
+from flask_cors import CORS
 import os 
 from flask_sqlalchemy import SQLAlchemy
 import time
@@ -14,7 +15,10 @@ import requests
 import io 
 import json 
 
+load_dotenv()
+
 app = Flask(__name__)
+CORS(app)
 
 # --- 데이터베이스 및 S3 설정  ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI')

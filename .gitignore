@@ -12,3 +12,7 @@ IDE settings folders
 .vscode/
 .idea/
 .env
+
+#Dependencies
+node_modules/
+.vite/
