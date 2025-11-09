@@ -1,0 +1,23 @@
+/* src/index.css */
+
+/* 1. 폰트 로드 (LandingPage.jsx의 <link>를 대체) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=Roboto:wght@400&display=swap');
+
+/* 2. CSS 리셋 및 기본 설정 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box; /* 레이아웃 계산에 필수적입니다. */
+    font-family: 'Inter', 'Roboto', sans-serif; /* 폰트 적용 */
+}
+
+body, html, #root {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #fff; /* 전체 배경색 설정 */
+}
+
+/* App.jsx의 컨테이너를 필요에 따라 설정할 수 있습니다. */
+.app-container {
+    width: 100%;
+}
