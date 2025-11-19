@@ -1,7 +1,7 @@
 Virtual Environment
 venv/
 .venv/
-
+best.pt
 Python cache files
 pycache/
 *.pyc

@@ -1,4 +1,3 @@
-# app.py
 from flask import Flask, request, jsonify, make_response, Response
 from fpdf.enums import XPos, YPos
 from dotenv import load_dotenv
@@ -9,19 +8,19 @@ import time
 import random
 import boto3
 from werkzeug.utils import secure_filename
-import os
 from datetime import datetime, timedelta
 from fpdf import FPDF
 import requests 
 import io 
 import json 
+import inference 
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-# --- 데이터베이스 및 S3 설정  ---
+# --- 데이터베이스 및 S3 설정 ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -39,7 +38,7 @@ s3 = boto3.client(
     region_name=S3_REGION
 )
 
-# --- DB 테이블 모델  ---
+# --- DB 테이블 모델 ---
 class AnalysisResult(db.Model):
     __tablename__ = 'analysis_results'
     id = db.Column(db.Integer, primary_key=True)
@@ -53,7 +52,7 @@ class AnalysisResult(db.Model):
 # API
 @app.route('/')
 def index():
-    return "백엔드 API 서버"
+    return "백엔드 API 서버 (AI 연동됨)"
 
 @app.route('/api/predict', methods=['POST'])
 def predict():
@@ -81,6 +80,7 @@ def predict():
 
     return jsonify({"result": "success", "message": "분석 요청이 성공적으로 접수되었습니다. 결과를 확인해주세요.", "analysis_id": new_analysis.id})
 
+# AI를 실행하는 로직
 @app.route('/api/result/<int:analysis_id>', methods=['GET'])
 def get_result(analysis_id):
     result = AnalysisResult.query.get(analysis_id)
@@ -88,23 +88,34 @@ def get_result(analysis_id):
     if result is None:
         return jsonify({"result": "error", "message": "해당 ID의 분석 결과를 찾을 수 없습니다."}), 404
 
+    # 1. 이미 분석 완료된 거면 DB에 저장된거 바로 줌
     if result.status == 'completed':
         return jsonify({"analysis_id": result.id, "status": result.status, "original_image_url": result.original_image_url, "details": result.analysis_data})
     
-    time_since_creation = datetime.utcnow() - result.created_at.replace(tzinfo=None)
-    
-    if time_since_creation < timedelta(seconds=5):
-        return jsonify({"status": "processing"})
-    else:
+    # 2. 아직 처리중이면 AI를 실행함
+    try:
+        print(f"AI 분석 시작... (ID: {analysis_id})")
+        
+        # inference.py의 함수를 호출해서 결과를 받아옴
+        real_analysis_json = inference.run_inference(result.original_image_url)
+        
+        print(f"AI 분석 완료: {real_analysis_json}")
+
+        # 결과를 DB에 저장하고 상태를 완료로 바꿈
+        result.analysis_data = real_analysis_json
         result.status = 'completed'
-        result.analysis_data = '{"type": "긁힘(Scratch)", "confidence": 0.98, "location": [100, 150, 200, 250]}'
         db.session.commit()
+
         return jsonify({"analysis_id": result.id, "status": result.status, "original_image_url": result.original_image_url, "details": result.analysis_data})
+
+    except Exception as e:
+        print(f"AI 실행 중 오류 발생: {e}")
+        # 오류 나면 일단 계속 로딩중인 척 하거나 에러 메시지 반환
+        return jsonify({"status": "processing", "error": str(e)})
 
 # --- PDF 보고서 생성 및 다운로드 API ---
 @app.route('/api/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
-    # SQLAlchemy 2.0 권장 방식
     result = db.session.get(AnalysisResult, analysis_id)
 
     if result is None:
@@ -117,7 +128,7 @@ def get_report(analysis_id):
         pdf = FPDF()
         pdf.add_page()
         
-        pdf.add_font('Nanum', '', 'NanumGothic.ttf')
+        pdf.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
         
         pdf.set_font('Nanum', '', 24)
         pdf.cell(0, 20, f'AI 흠집 탐지 분석 보고서 (ID: {result.id})', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
@@ -126,7 +137,6 @@ def get_report(analysis_id):
         image_stream = io.BytesIO(response_img.content)
         
         pdf.image(image_stream, x=30, y=40, w=150)
-        
         pdf.ln(120)
 
         pdf.set_font('Nanum', '', 16)
@@ -134,8 +144,18 @@ def get_report(analysis_id):
         pdf.set_font('Nanum', '', 12)
         
         analysis_details = json.loads(result.analysis_data)
-        for key, value in analysis_details.items():
-            pdf.cell(0, 8, f'- {key}: {value}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        # AI 결과가 리스트 형태([{},{}])로 오므로 반복문으로 출력
+        if isinstance(analysis_details, list):
+            if not analysis_details:
+                pdf.cell(0, 8, '탐지된 흠집이 없습니다.', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            else:
+                for i, item in enumerate(analysis_details):
+                    text = f"{i+1}. 종류: {item.get('class')} / 확률: {item.get('confidence')}"
+                    pdf.cell(0, 8, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+             for key, value in analysis_details.items():
+                pdf.cell(0, 8, f'- {key}: {value}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
         pdf_output = bytes(pdf.output())
         
@@ -146,13 +166,12 @@ def get_report(analysis_id):
         )
 
     except Exception as e:
-        print(f"!!!!!!!!!!!! PDF 생성 실제 오류: {e} !!!!!!!!!!!!")
+        print(f"!!!! PDF 생성 실제 오류: {e} !!!!")
         return jsonify({"result": "error", "message": f"PDF 생성 중 오류 발생: {str(e)}"}), 500
 
-# --- 앱 실행 코드  ---
+# --- 앱 실행 코드 ---
 with app.app_context():
     db.create_all()
 
 if __name__ == '__main__':
     app.run(debug=True)
-
