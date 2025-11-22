@@ -68,3 +68,21 @@
     cursor: pointer;
     transition: background-color 0.2s ease;
 }
+
+.addTestButton {
+    color: #000;
+        background-color: #ffc107;
+        border: none;
+        border-radius: 8px;
+        justify-content: center;
+        align-self: stretch;
+        align-items: center;
+        gap: 8px;
+        margin: auto 0;
+        padding: 10px 20px;
+        font-size: 16px;
+        display: flex;
+        box-shadow: 0 1px 2px #0000000d;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+}

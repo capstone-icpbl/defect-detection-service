@@ -1,15 +1,15 @@
-// src/main.jsx (일반적인 Vite React 설정)
+// src/main.jsx
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+// BrowserRouter import가 여기에 없어야 합니다!
 
-// 🌟 App 컴포넌트를 올바른 경로에서 불러오는지 확인
-import App from './App.jsx';
-// 🌟 전역 CSS 파일이 여기서 import되어야 합니다.
+import App from './App.jsx'; 
 import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {/* 🌟 App 컴포넌트가 렌더링되는지 확인 */}
-   <App />
+    {/* BrowserRouter는 App.jsx 안에 있으므로 여기서는 App만 렌더링합니다. */}
+    <App /> 
   </React.StrictMode>,
 );
