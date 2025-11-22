@@ -1,223 +1,193 @@
-.landingPage {
-  background-color: #fff;
-  width: 100%;
-  min-height: 1053px;
-  position: relative;
+/* -------------------------------------- */
+/* --- 1. Page Wrapper & Typography --- */
+/* -------------------------------------- */
+.container {
+    background-color: #f8f9fa;
+    /* 밝은 배경 */
+    font-family: Inter, -apple-system, Roboto, Helvetica, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-bottom: 50px;
+    /* 하단 여백 */
 }
 
-.header {
-  box-sizing: border-box;
-  background-color: #fff;
-  justify-content: space-between;
-  align-items: flex-start;
-  width: 100%;
-  height: 219px;
-  padding: 19px 80px 111px;
-  display: flex;
+/* -------------------------------------- */
+/* --- 2. Header and Hero Section --- */
+/* -------------------------------------- */
+/* Header.jsx는 이 페이지에서 별도의 스타일을 사용합니다. */
+
+.mainContent { /* 사진 */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin-top: 30px;
+    /* 헤더와의 간격 */
+    padding: 0 20px;
 }
 
-/* 표준 미디어 쿼리 문법: (max-width: 991px)로 수정 */
-@media (max-width: 991px) {
-  .header {
-  height: auto;
-  padding: 40px 40px 80px;
-  }
+.heroImageWrapper {
+    /* 랜딩 페이지에서 ProjectImage를 강조하기 위한 스타일 */
+    background-color: #ffffff;
+    padding: 20px;
+    border-radius: 0px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 700px;
+    margin-bottom: 20px;
+
+    /* ProjectImage 컴포넌트 자체에 스타일을 적용하는 대신 래퍼를 사용 */
+    min-height: 150px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .header {
-   height: auto;
-   padding: 20px;
-  }
+/* --- 2.1 Project Image Component Style --- */
+.heroImage {
+    /* 이미지는 부모 래퍼의 100%에 맞춥니다. */
+    width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 0px;
 }
 
-.logoTitle {
-  color: #000;
-  margin-top: 11px;
-  font: 400 20px/150% Inter, -apple-system, Roboto, Helvetica, sans-serif;
+.pageTitle {
+    font-size: 24px;
+    font-weight: 700;
+    color: #343a40;
+    margin-bottom: 30px;
+    text-align: center;
 }
 
-/* 표준 미디어 쿼리 문법: (max-width: 991px)로 수정 */
-@media (max-width: 991px) {
-  .logoTitle {
-   font-size: 18px;
-  }
-}
+/* -------------------------------------- */
+/* --- 3. Code Input Form --- */
+/* -------------------------------------- */
 
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .logoTitle {
-   font-size: 16px;
-  }
-}
-
-.navigation {
-  justify-content: flex-end;
-  align-items: center;
-  gap: 48px;
-  display: flex;
-}
-
-/* 표준 미디어 쿼리 문법: (max-width: 991px)로 수정 */
-@media (max-width: 991px) {
-  .navigation {
-   gap: 32px;
-  }
-}
-
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .navigation {
-   display: none;
-  }
-}
-
-.navItem {
-  color: #000;
-  font: 400 17px/150% Inter, -apple-system, Roboto, Helvetica, sans-serif;
-}
-
-/* 표준 미디어 쿼리 문법: (max-width: 991px)로 수정 */
-@media (max-width: 991px) {
-  .navItem {
-   font-size: 18px;
-  }
-}
-
-.actionButton {
-  background-color: #000;
-   border-radius: 8px;
-  justify-content: center;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 24px;
-  display: flex;
-  box-shadow: 0 1px 2px #0000000d;
-  border: none;
-  cursor: pointer;
-}
-
-.buttonText {
-  color: #fff;
-  font: 400 16px/150% Inter, -apple-system, Roboto, Helvetica, sans-serif;
-}
-
-.mobileMenuIcon {
-  color: #000;
-  cursor: pointer;
-  margin-top: 11px;
-  font-size: 24px;
-  display: none;
-}
-
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .mobileMenuIcon {
-   display: block;
-  }
-}
-
-.projectNameSection {
-  background-color: #d9d9d9;
-  justify-content: center;
-  align-items: center;
-  width: 700px;
-  height: 200px;
-  display: flex;
-  position: absolute;
-  top: 110px;
-  left: 50%;
-  transform: translate(-50%);
-}
-
-/* 표준 미디어 쿼리 문법: (max-width: 991px)로 수정 */
-@media (max-width: 991px) {
-  .projectNameSection {
+.inputForm {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     width: 90%;
-    max-width: 600px;
-    height: 250px;
-    top: 140px;
-  }
+    /* 🌟 입력 폼 너비를 550px로 확장 */
+    max-width: 550px;
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
 
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .projectNameSection {
-   width: 90%;
-   height: 200px;
-   top: 100px;
-  }
+.inputSection {
+    width: 100%;
+    margin-bottom: 20px;
 }
 
-.projectNameText {
-  color: #828282;
-  text-align: center;
-  font: 400 20px/150% Inter, -apple-system, Roboto, Helvetica, sans-serif;
+.inputArea {
+    width: 100%;
+    padding: 15px 20px;
+    font-size: 18px;
+    font-weight: 500;
+    color: #495057;
+    border: 2px solid #ced4da;
+    border-radius: 8px;
+    transition: border-color 0.3s, box-shadow 0.3s;
+    text-align: center;
+    /* 코드가 중앙에 오도록 */
+    text-transform: uppercase;
+    /* 대문자로 입력되도록 시각적 강조 */
+    box-sizing: border-box;
+    /* 모바일에서 input을 크게 만들기 위해 최소 높이 설정 */
+    min-height: 50px;
 }
 
-/* 표준 미디어 쿼리 문법: (max-width: 640px)로 수정 */
-@media (max-width: 640px) {
-  .projectNameText {
-   font-size: 18px;
-  }
+.inputArea:focus {
+    border-color: #007bff;
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
 }
 
-/* --- [ ImageUploadArea.jsx 컴포넌트를 위한 스타일 ] --- */
+/* -------------------------------------- */
+/* --- 4. Access Button --- */
+/* -------------------------------------- */
 
-/* 1. 업로드 영역 전체 (크기, 위치, 배경) */
-.uploadPreview {
-   box-sizing: border-box;
-   background-color: #f5eff7; 
-   border: 2px dashed transparent; 
-   border-radius: 40px;
-  
-   /* 크기와 위치 */
-   width: 850px;
-   height: 480px;
-   position: absolute;
-   top: 330px; 
-   left: 50%;
-   transform: translate(-50%);
-  
-   /* 내부 요소 (아이콘, 텍스트)를 중앙에 정렬 */
-   display: flex;
-   flex-direction: column;
-   justify-content: center;
-   align-items: center;
-   cursor: pointer; 
-   transition: all 0.3s ease; 
+.accessButton {
+    background-color: #82beff;
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    transition: background-color 0.3s, opacity 0.3s, transform 0.1s;
+    box-shadow: 0 4px 10px rgba(129, 40, 167, 0.3);
 }
 
-/* 2. 드래그 중 시각적 피드백 */
-.uploadPreview.active {
-   border-color: #9346ad; /* 드래그 시 테두리 색상 변경 */
-   background-color: #f0e6f2; 
+.accessButton:hover:not(:disabled) {
+    background-color: #3295ff;
+    box-shadow: 0 6px 15px rgba(129, 40, 167, 0.3);
 }
 
-/* 3. 업로드 아이콘 스타일 */
-.uploadSvgIcon {
-   width: 70px;
-   height: 70px;
-   fill: #828282; 
-   margin-bottom: 10px;
+.accessButton:disabled {
+    background-color: #3295ff;
+    cursor: not-allowed;
+    opacity: 0.8;
+    box-shadow: none;
 }
 
-/* 4. 주요 안내 메시지 ('클릭 혹은 파일을 이곳에 드롭하세요.') */
-.previewMsg {
-   color: #000;
-   font: 600 20px/150% Inter, sans-serif;
-   margin: 0; 
-  }
-
-/* 5. 보조 안내 메시지 ('파일당 최대 3MB') */
-.previewDesc {
-   color: #828282;
-   font: 400 16px/150% Inter, sans-serif;
-   margin: 0;
+.accessButton.loading {
+    background-color: #007bff;
+    /* 로딩 중: 파란색 */
+    cursor: wait;
+    opacity: 0.9;
+    box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
 }
 
-/* 6. 숨겨진 파일 입력 필드 */
-.hiddenFileInput {
-   display: none; 
+/* -------------------------------------- */
+/* --- 5. Error Message --- */
+/* -------------------------------------- */
+
+.errorMessage {
+    margin-top: 15px;
+    padding: 10px 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    width: 100%;
+    text-align: center;
+    background-color: #f8d7da;
+    /* Light red */
+    color: #721c24;
+    /* Dark red text */
+    border: 1px solid #f5c6cb;
+}
+
+/* -------------------------------------- */
+/* --- Mobile Responsiveness --- */
+/* -------------------------------------- */
+@media (max-width: 600px) {
+    .pageTitle {
+        font-size: 20px;
+        margin-bottom: 20px;
+    }
+
+    .heroImageWrapper {
+        padding: 15px;
+    }
+
+    .inputForm {
+        padding: 20px;
+    }
+
+    .inputArea {
+        font-size: 16px;
+    }
+
+    .accessButton {
+        font-size: 16px;
+        padding: 10px 20px;
+    }
 }
