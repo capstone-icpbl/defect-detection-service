@@ -21,7 +21,7 @@ app = Flask(__name__)
 CORS(app)
 
 # --- 데이터베이스 및 S3 설정 ---
-app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI')
+app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI') 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 db = SQLAlchemy(app)
@@ -38,33 +38,98 @@ s3 = boto3.client(
     region_name=S3_REGION
 )
 
-# --- DB 테이블 모델 ---
+# --- DB 테이블 모델 (멀티테넌시 유지) ---
+
+class Project(db.Model):
+    __tablename__ = 'projects'
+    id = db.Column(db.Integer, primary_key=True)
+    # 접속 코드를 이름으로 사용 (예: ROBOTDETECT, DRONDETECT)
+    access_code = db.Column(db.String(100), unique=True, nullable=False) 
+    created_at = db.Column(db.DateTime, server_default=db.func.now())
+    
+    results = db.relationship('AnalysisResult', backref='project', lazy=True)
+
 class AnalysisResult(db.Model):
     __tablename__ = 'analysis_results'
     id = db.Column(db.Integer, primary_key=True)
+    
+    # 어떤 프로젝트(접속코드)에 속한 데이터인지 식별
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
+    
     original_image_url = db.Column(db.String(255), nullable=False)
     result_image_url = db.Column(db.String(255), nullable=True)
-    analysis_data = db.Column(db.Text, nullable=True)
+    analysis_data = db.Column(db.Text, nullable=True) 
     status = db.Column(db.String(50), nullable=False, default='processing')
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
+# --- API ---
 
-# API
 @app.route('/')
 def index():
-    return "백엔드 API 서버 (AI 연동됨)"
+    return "모빌리티 표면 분석 AI 서버 (Access Code Ver. - Basic)"
 
+# 1. 접속 코드 확인 및 히스토리 불러오기
+@app.route('/api/access', methods=['POST'])
+def access_project():
+    data = request.get_json()
+    access_code = data.get('access_code') # 예: "ROBOTDETECT"
+    
+    if not access_code:
+        return jsonify({"result": "error", "message": "접속 코드를 입력해주세요."}), 400
+        
+    # 해당 코드를 가진 프로젝트 찾기
+    project = Project.query.filter_by(access_code=access_code).first()
+    
+    is_new = False
+    if not project:
+        # 없으면 자동 생성 (시연 편의성)
+        project = Project(access_code=access_code)
+        db.session.add(project)
+        db.session.commit()
+        is_new = True
+    
+    # 해당 프로젝트의 과거 기록 조회 (최신순)
+    results = AnalysisResult.query.filter_by(project_id=project.id).order_by(AnalysisResult.created_at.desc()).all()
+    
+    history_data = []
+    for r in results:
+        # 분석 데이터 파싱
+        parsed_data = json.loads(r.analysis_data) if r.analysis_data else []
+        
+        # 목록에 보여줄 간단 요약 (결함 개수만 표시)
+        defect_count = len(parsed_data) if isinstance(parsed_data, list) else 0
+        summary_text = f"탐지된 결함: {defect_count}개"
+
+        history_data.append({
+            "id": r.id,
+            "image_url": r.original_image_url,
+            "status": r.status,
+            "summary": summary_text,
+            "date": r.created_at.strftime("%Y-%m-%d %H:%M")
+        })
+
+    return jsonify({
+        "result": "success",
+        "message": "접속 성공" if not is_new else "새 작업 공간 생성됨",
+        "project_id": project.id,
+        "access_code": project.access_code,
+        "history": history_data
+    })
+
+
+# 2. 분석 요청 (project_id 필수)
 @app.route('/api/predict', methods=['POST'])
 def predict():
     if 'image' not in request.files:
-        return jsonify({"result": "error", "message": "이미지 파일이 없습니다."}), 400
+        return jsonify({"result": "error", "message": "이미지 없음"}), 400
     
-    file = request.files['image']
-    
-    if file.filename == '':
-        return jsonify({"result": "error", "message": "파일이 선택되지 않았습니다."}), 400
+    project_id = request.form.get('project_id')
+    if not project_id:
+        return jsonify({"result": "error", "message": "프로젝트 ID 누락"}), 400
 
+    file = request.files['image']
     filename = secure_filename(file.filename)
+    
     try:
         s3.upload_fileobj(file, S3_BUCKET_NAME, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': file.content_type})
     except Exception as e:
@@ -72,105 +137,117 @@ def predict():
 
     image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{filename}"
     
-    new_analysis = AnalysisResult(original_image_url=image_url, status='processing')
+    new_analysis = AnalysisResult(
+        original_image_url=image_url, 
+        status='processing',
+        project_id=project_id
+    )
     db.session.add(new_analysis)
     db.session.commit()
 
-    print(f"새 분석 요청(이미지: {image_url})이 DB에 저장됨 (ID: {new_analysis.id})")
+    return jsonify({"result": "success", "analysis_id": new_analysis.id})
 
-    return jsonify({"result": "success", "message": "분석 요청이 성공적으로 접수되었습니다. 결과를 확인해주세요.", "analysis_id": new_analysis.id})
 
-# AI를 실행하는 로직
+# 3. 결과 조회 (단순 AI 분석 결과 반환)
 @app.route('/api/result/<int:analysis_id>', methods=['GET'])
 def get_result(analysis_id):
-    result = AnalysisResult.query.get(analysis_id)
+    result = db.session.get(AnalysisResult, analysis_id)
 
-    if result is None:
-        return jsonify({"result": "error", "message": "해당 ID의 분석 결과를 찾을 수 없습니다."}), 404
+    if not result:
+        return jsonify({"result": "error", "message": "데이터 없음"}), 404
 
-    # 1. 이미 분석 완료된 거면 DB에 저장된거 바로 줌
     if result.status == 'completed':
-        return jsonify({"analysis_id": result.id, "status": result.status, "original_image_url": result.original_image_url, "details": result.analysis_data})
+        return jsonify({
+            "analysis_id": result.id, 
+            "status": "completed", 
+            "original_image_url": result.original_image_url, 
+            "details": json.loads(result.analysis_data)
+        })
     
-    # 2. 아직 처리중이면 AI를 실행함
     try:
         print(f"AI 분석 시작... (ID: {analysis_id})")
         
-        # inference.py의 함수를 호출해서 결과를 받아옴
-        real_analysis_json = inference.run_inference(result.original_image_url)
+        # [수정] 복잡한 등급 로직 제거 -> YOLO 결과 그대로 저장
+        raw_json = inference.run_inference(result.original_image_url)
         
-        print(f"AI 분석 완료: {real_analysis_json}")
-
-        # 결과를 DB에 저장하고 상태를 완료로 바꿈
-        result.analysis_data = real_analysis_json
+        result.analysis_data = raw_json
         result.status = 'completed'
         db.session.commit()
 
-        return jsonify({"analysis_id": result.id, "status": result.status, "original_image_url": result.original_image_url, "details": result.analysis_data})
+        return jsonify({
+            "analysis_id": result.id, 
+            "status": "completed", 
+            "original_image_url": result.original_image_url, 
+            "details": json.loads(raw_json)
+        })
 
     except Exception as e:
-        print(f"AI 실행 중 오류 발생: {e}")
-        # 오류 나면 일단 계속 로딩중인 척 하거나 에러 메시지 반환
+        print(f"오류: {e}")
         return jsonify({"status": "processing", "error": str(e)})
 
-# --- PDF 보고서 생성 및 다운로드 API ---
+
+# 4. PDF 보고서 생성 (기본 버전)
 @app.route('/api/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
-
-    if result is None:
-        return jsonify({"result": "error", "message": "해당 ID의 분석 결과를 찾을 수 없습니다."}), 404
-        
-    if result.status != 'completed':
-        return jsonify({"result": "error", "message": "분석이 아직 완료되지 않았습니다."}), 400
+    if not result or result.status != 'completed':
+        return jsonify({"error": "준비 안됨"}), 400
 
     try:
-        pdf = FPDF()
-        pdf.add_page()
-        
-        pdf.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
-        
-        pdf.set_font('Nanum', '', 24)
-        pdf.cell(0, 20, f'AI 흠집 탐지 분석 보고서 (ID: {result.id})', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
-        
-        response_img = requests.get(result.original_image_url)
-        image_stream = io.BytesIO(response_img.content)
-        
-        pdf.image(image_stream, x=30, y=40, w=150)
-        pdf.ln(120)
-
-        pdf.set_font('Nanum', '', 16)
-        pdf.cell(0, 10, '분석 결과', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        pdf.set_font('Nanum', '', 12)
-        
+        # 리스트 형태의 분석 데이터 로드
         analysis_details = json.loads(result.analysis_data)
         
-        # AI 결과가 리스트 형태([{},{}])로 오므로 반복문으로 출력
-        if isinstance(analysis_details, list):
-            if not analysis_details:
-                pdf.cell(0, 8, '탐지된 흠집이 없습니다.', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            else:
-                for i, item in enumerate(analysis_details):
-                    text = f"{i+1}. 종류: {item.get('class')} / 확률: {item.get('confidence')}"
-                    pdf.cell(0, 8, text, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-        else:
-             for key, value in analysis_details.items():
-                pdf.cell(0, 8, f'- {key}: {value}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-
-        pdf_output = bytes(pdf.output())
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
         
-        return Response(
-            pdf_output,
-            mimetype='application/pdf',
-            headers={'Content-Disposition': f'attachment;filename=report_{analysis_id}.pdf'}
-        )
+        # 제목
+        pdf.set_font('Nanum', '', 20)
+        pdf.cell(0, 15, f'모빌리티 표면 분석 보고서', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        
+        pdf.set_font('Nanum', '', 12)
+        pdf.cell(0, 10, f"프로젝트: {result.project.access_code} / 날짜: {result.created_at.strftime('%Y-%m-%d')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        pdf.ln(10)
+
+        # 이미지
+        response_img = requests.get(result.original_image_url)
+        image_stream = io.BytesIO(response_img.content)
+        pdf.image(image_stream, x=30, y=None, w=150)
+        pdf.ln(10)
+
+        # 결과 목록 (등급/권장조치 제거됨)
+        pdf.set_font('Nanum', '', 16)
+        pdf.cell(0, 10, '분석 결과 상세', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        
+        pdf.set_font('Nanum', '', 12)
+        
+        if not analysis_details:
+            pdf.cell(0, 8, '탐지된 흠집이 없습니다.', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        else:
+            # 헤더
+            pdf.set_font('Nanum', '', 10)
+            pdf.cell(20, 8, "No.", border=1, align='C')
+            pdf.cell(60, 8, "탐지된 결함 종류", border=1, align='C')
+            pdf.cell(40, 8, "AI 확신도(%)", border=1, align='C')
+            pdf.ln()
+
+            for i, item in enumerate(analysis_details):
+                cls_name = item.get('class', 'Unknown')
+                conf = float(item.get('confidence', 0)) * 100
+                
+                pdf.cell(20, 8, str(i+1), border=1, align='C')
+                pdf.cell(60, 8, cls_name, border=1, align='C')
+                pdf.cell(40, 8, f"{conf:.1f}%", border=1, align='C')
+                pdf.ln()
+
+        return Response(bytes(pdf.output()), mimetype='application/pdf', headers={'Content-Disposition': f'attachment;filename=report_{analysis_id}.pdf'})
 
     except Exception as e:
-        print(f"!!!! PDF 생성 실제 오류: {e} !!!!")
-        return jsonify({"result": "error", "message": f"PDF 생성 중 오류 발생: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
-# --- 앱 실행 코드 ---
+# --- DB 초기화 ---
 with app.app_context():
+    #db.drop_all() 
     db.create_all()
 
 if __name__ == '__main__':
