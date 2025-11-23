@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify, make_response
 from dotenv import load_dotenv
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 import os 
 from flask_sqlalchemy import SQLAlchemy
 import boto3
@@ -13,9 +13,7 @@ import inference
 load_dotenv()
 
 app = Flask(__name__)
-
-# [수정 1] CORS 설정을 더 강력하게 변경 (모든 곳에서 접속 허용)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app) 
 
 # --- 데이터베이스 및 S3 설정 ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI') 
@@ -87,7 +85,7 @@ def index():
     return "AI 서버 가동 중 (CORS Fixed)"
 
 # 1. 접속 (Login) - [수정 2] OPTIONS 메서드 명시적 허용
-@app.route('/api/access', methods=['POST', 'OPTIONS'])
+@app.route('/access', methods=['POST', 'OPTIONS'])
 def access_project():
     # 브라우저가 간보는 요청(OPTIONS)이면 바로 OK 해줌
     if request.method == 'OPTIONS':
@@ -132,7 +130,7 @@ def access_project():
 
 
 # 1.5 히스토리 갱신
-@app.route('/api/history', methods=['POST', 'OPTIONS'])
+@app.route('/history', methods=['POST', 'OPTIONS'])
 def get_history():
     if request.method == 'OPTIONS': return '', 204
 
@@ -162,7 +160,7 @@ def get_history():
 
 
 # 2. 분석 요청
-@app.route('/api/predict', methods=['POST', 'OPTIONS'])
+@app.route('/predict', methods=['POST', 'OPTIONS'])
 def predict():
     if request.method == 'OPTIONS': return '', 204
 
@@ -203,7 +201,7 @@ def predict():
 
 
 # 3. 결과 조회
-@app.route('/api/result/<int:analysis_id>', methods=['GET', 'OPTIONS'])
+@app.route('/result/<int:analysis_id>', methods=['GET', 'OPTIONS'])
 def get_result(analysis_id):
     if request.method == 'OPTIONS': return '', 204
 
@@ -240,7 +238,7 @@ def get_result(analysis_id):
 
 
 # 4. 리포트
-@app.route('/api/report/<int:analysis_id>', methods=['GET'])
+@app.route('/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
     if not result or result.status != 'completed':

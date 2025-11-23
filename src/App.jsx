@@ -8,7 +8,7 @@ import UploadPage from './pages/UploadPage';
 import AnalysisPage from './pages/AnalysisPage';
 
 // API 설정
-const BASE_URL = '/api'; 
+const BASE_URL = 'http://127.0.0.1:5000'; 
 
 function AppContent() {
     const navigate = useNavigate();

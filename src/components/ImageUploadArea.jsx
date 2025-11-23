@@ -102,7 +102,7 @@ function ImageUploadArea({ projectId, fetchHistory, onUploadSuccess }) {
         setIsUploading(true);
         setUploadStatus({ type: 'empty', message: '이미지 업로드 및 분석을 요청 중입니다...' });
 
-        const apiUrl = `${BASE_URL}/api/predict`;
+        const apiUrl = `${BASE_URL}/predict`;
         const formData = new FormData();
         formData.append('image', selectedFile);
         formData.append('project_id', projectId); // 필수: /api/access에서 받은 ID
