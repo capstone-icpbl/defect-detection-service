@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import ProjectImage from '../components/ProjectImage';
-import ImageUploadArea from '../components/ImageUploadArea'; // ⭐️ 업로드 컴포넌트
-import HistoryList from '../components/HistoryList';         // ⭐️ 히스토리 컴포넌트
+import ImageUploadArea from '../components/ImageUploadArea';
+import HistoryList from '../components/HistoryList';
 import styles from './AnalysisPage.module.css';
 
-const BASE_URL = 'http://127.0.0.1:5000'; // 백엔드 주소
+const BASE_URL = 'http://127.0.0.1:5000';
 
-// 1. [좌측] 이미지 뷰어 섹션 (SVG 오버레이 포함)
+// 1. [좌측] 이미지 뷰어 섹션 (SVG 오버레이 기능 포함)
 const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
     const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
     const detections = analysisResult?.details || [];
@@ -33,7 +33,7 @@ const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
                                 className={styles.analyzedImage}
                             />
                             
-                            {/* 바운딩 박스 그리기 (SVG Overlay) */}
+                            {/* 바운딩 박스 그리기 (SVG Overlay - 스타일 변경 없이 기본 기능 유지) */}
                             {imgSize.w > 0 && (
                                 <svg 
                                     viewBox={`0 0 ${imgSize.w} ${imgSize.h}`} 
@@ -125,18 +125,18 @@ const ClassificationSection = ({ analysisResult }) => {
     );
 };
 
-// 3. [하단] 결과 섹션 (PDF 다운로드 구현)
+// 3. [하단] 결과 섹션 (PDF 다운로드 기능)
 const ResultSection = ({ analysisResult }) => {
     const count = analysisResult?.details?.length || 0;
     const analysisId = analysisResult?.analysis_id;
 
-    // ⭐️ PDF 다운로드 핸들러
+    // PDF 다운로드 핸들러
     const handleDownloadPdf = () => {
         if (!analysisId) {
             alert("분석 결과 ID가 없습니다.");
             return;
         }
-        // 새 창으로 PDF 리포트 URL 열기 (브라우저가 자동으로 다운로드 처리)
+        // 백엔드 엔드포인트를 호출하여 새 창에서 PDF 열기
         const pdfUrl = `${BASE_URL}/report/${analysisId}`;
         window.open(pdfUrl, '_blank');
     };
@@ -177,8 +177,7 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
                 <ProjectImage projectId={projectId} /> 
             </div>
 
-            {/* ⭐️ 2. 상단 업로드 영역 (결과 화면에서도 계속 업로드 가능) */}
-            {/* 스타일은 UploadPage와 유사하게 맞춤 */}
+            {/* 2. 상단 업로드 영역 (ImageUploadArea 재사용) */}
             <div style={{ width: '90%', maxWidth: '800px', marginTop: '20px' }}>
                  <ImageUploadArea 
                     projectId={projectInternalId}
@@ -196,7 +195,7 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
             {/* 4. 하단 결과 요약 및 PDF 버튼 */}
             <ResultSection analysisResult={analysisResult} />
 
-            {/* ⭐️ 5. 최하단 히스토리 목록 */}
+            {/* 5. 최하단 히스토리 목록 */}
             <div style={{ width: '90%', maxWidth: '1200px', marginTop: '30px' }}>
                  <HistoryList history={history} />
             </div>
