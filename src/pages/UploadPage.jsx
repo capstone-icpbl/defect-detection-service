@@ -83,7 +83,7 @@ const HistoryItem = ({ item }) => {
  * @param {object} props.projectData - App.jsx에서 받은 프로젝트 데이터 (id, history 등)
  * @param {function} props.fetchHistory - 히스토리 목록을 서버에서 새로 가져오는 함수
  */
-function UploadPage({ projectData, fetchHistory, onUploadSuccess }) {
+function UploadPage({ projectData, fetchHistory, onUploadSuccess, projectInternalId }) {
     const { id: projectId, history } = projectData;
 
     return (
@@ -96,7 +96,7 @@ function UploadPage({ projectData, fetchHistory, onUploadSuccess }) {
             
             {/* 3. 이미지 업로드 영역 배치 */}
             <ImageUploadArea 
-                projectId={projectId}
+                projectId={projectInternalId}
                 fetchHistory={fetchHistory} // 업로드 성공 시 히스토리 갱신을 위해 전달
                 onUploadSuccess={onUploadSuccess} // ⭐️ App.jsx에서 받은 prop 전달
             /> 

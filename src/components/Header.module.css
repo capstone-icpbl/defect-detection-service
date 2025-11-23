@@ -1,8 +1,7 @@
-/* Header.module.css */
-
 .header {
     color: #000;
-    background-color: #f8f8f8; /*헤더 배경색*/
+    background-color: #f8f8f8;
+    /*헤더 배경색*/
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
@@ -46,8 +45,8 @@
 
 .currentLocation,
 .projectName {
-    align-self: stretch;
-    margin: auto 0;
+    /* align-self: stretch; */
+    /* margin: auto 0; */
     font-size: 16px;
 }
 
@@ -57,10 +56,10 @@
     border: none;
     border-radius: 8px;
     justify-content: center;
-    align-self: stretch;
+    /* align-self: stretch; */
     align-items: center;
     gap: 8px;
-    margin: auto 0;
+    /*margin: auto 0;*/
     padding: 10px 20px;
     font-size: 16px;
     display: flex;
@@ -71,18 +70,40 @@
 
 .addTestButton {
     color: #000;
-        background-color: #ffc107;
-        border: none;
-        border-radius: 8px;
-        justify-content: center;
-        align-self: stretch;
-        align-items: center;
-        gap: 8px;
-        margin: auto 0;
-        padding: 10px 20px;
-        font-size: 16px;
-        display: flex;
-        box-shadow: 0 1px 2px #0000000d;
-        cursor: pointer;
-        transition: background-color 0.2s ease;
+    background-color: #ffc107;
+    border: none;
+    border-radius: 8px;
+    justify-content: center;
+    /* align-self: stretch;*/
+    align-items: center;
+    gap: 8px;
+    /*margin: auto 0;*/
+    padding: 10px 20px;
+    font-size: 16px;
+    display: flex;
+    box-shadow: 0 1px 2px #0000000d;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+/* ⭐️ 핵심: 접속 코드 태그 스타일 */
+.projectTag {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    transition: all 0.2s ease;
+}
+
+/* 접속 상태별 색상 (Header.jsx에서 조건부로 사용함) */
+.connected {
+    color: #2563eb;
+    background-color: #eff6ff;
+    /* 연한 파란 배경 */
+}
+
+.disconnected {
+    color: #94a3b8;
+    background-color: #f1f5f9;
+    /* 연한 회색 배경 */
 }

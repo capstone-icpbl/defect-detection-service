@@ -12,18 +12,44 @@ const BASE_URL = 'http://127.0.0.1:5000';
 
 function AppContent() {
     const navigate = useNavigate();
+    
+    // ==============================
+    // 1. STATE MANAGEMENT
+    // ==============================
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
     
-    // 상태 관리
+    // 프로젝트 데이터
     const [projectData, setProjectData] = useState({ id: null, history: [] });
     const [projectInternalId, setProjectInternalId] = useState(null); 
     
+    // 분석 데이터
     const [uploadedImageUrl, setUploadedImageUrl] = useState(null); 
     const [uploadedFileName, setUploadedFileName] = useState(null); 
-    const [analysisResult, setAnalysisResult] = useState(null); // 분석 결과 상태 추가
+    const [analysisResult, setAnalysisResult] = useState(null); 
 
-    // [FIX 1] 히스토리 조회: GET -> POST 변경
+    // ==============================
+    // 2. HANDLERS
+    // ==============================
+
+    // ⭐️ [NEW] 상태 초기화 및 홈으로 이동 (로그아웃/처음으로)
+    const handleReset = () => {
+        console.log("Session Reset: 모든 상태를 초기화하고 홈으로 이동합니다.");
+        
+        // 모든 State를 초기값으로 리셋
+        setProjectData({ id: null, history: [] });
+        setProjectInternalId(null);
+        setUploadedImageUrl(null);
+        setUploadedFileName(null);
+        setAnalysisResult(null);
+        setError(null);
+        setIsLoading(false);
+
+        // 랜딩 페이지로 이동
+        navigate('/');
+    };
+
+    // 히스토리 조회
     const fetchHistory = async (internalId) => {
         if (!internalId) return;
         try {
@@ -41,7 +67,7 @@ function AppContent() {
         }
     };
 
-    // [FIX 2] 로그인 로직
+    // 로그인 로직
     const handleAccessSubmit = async (code) => {
         setIsLoading(true);
         setError(null);
@@ -71,21 +97,14 @@ function AppContent() {
     const handleUploadSuccess = (file, url, resultData) => {
         setUploadedFileName(file.name);
         setUploadedImageUrl(url);
-        setAnalysisResult(resultData); // 결과 데이터 저장
+        setAnalysisResult(resultData);
         navigate('/analysis'); 
     };
 
     // 🛠️ [DEBUG] 분석 페이지 강제 이동 함수
     const debugMoveToAnalysis = () => {
         console.log("🛠️ 디버그: 분석 페이지로 강제 이동");
-        
-        // 1. 더미 프로젝트 데이터 생성
-        setProjectData({
-            id: 'DEBUG_MODE',
-            history: []
-        });
-
-        // 2. 더미 이미지 & 분석 결과 생성
+        setProjectData({ id: 'DEBUG_MODE', history: [] });
         setUploadedFileName('debug_sample_car.jpg');
         setUploadedImageUrl('https://placehold.co/800x600/2563eb/white?text=Debug+Car+Image');
         setAnalysisResult({
@@ -96,15 +115,17 @@ function AppContent() {
                 { class: 'Dent', confidence: 0.82, bbox: [300, 300, 400, 400] }
             ]
         });
-
         navigate('/analysis');
     };
 
     return (
-        <div className="app-container font-sans text-slate-900 bg-slate-50 min-h-screen">
-            <Header />
+        <div className="app-container">
+            {/* ⭐️ Header에 projectId와 onReset 함수 전달 */}
+            <Header 
+                projectId={projectData.id} 
+                onReset={handleReset} 
+            />
 
-            {/* 🛠️ 디버그 버튼 (우측 하단) */}
             <button 
                 onClick={debugMoveToAnalysis}
                 style={{
@@ -112,10 +133,10 @@ function AppContent() {
                     padding: '12px 24px', backgroundColor: '#e11d48', color: 'white',
                     border: 'none', borderRadius: '50px', fontWeight: 'bold',
                     boxShadow: '0 4px 15px rgba(225, 29, 72, 0.4)', cursor: 'pointer',
-                    fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px'
+                    fontSize: '14px'
                 }}
             >
-                🚀 분석 페이지 바로가기 (CSS작업용)
+                🚀 분석 페이지 바로가기
             </button>
 
             <Routes>
