@@ -38,7 +38,6 @@ function AppContent() {
             .map(item => ({
                 ...item,
                 analysis_id: item.analysis_id || item.id,
-                // filename이 없는 경우 대비
                 filename: item.filename || `Analysis #${item.analysis_id || item.id}`,
                 timestamp: item.timestamp || item.date || new Date().toISOString()
             }));
@@ -54,12 +53,10 @@ function AppContent() {
                 body: JSON.stringify({ project_id: targetId })
             });
             const data = await response.json();
-            
             const validHistory = normalizeHistory(data.history);
             const sortedHistory = validHistory.sort((a, b) => 
                 new Date(b.timestamp) - new Date(a.timestamp)
             );
-            
             setProjectData(prev => ({ ...prev, history: sortedHistory }));
         } catch (e) {
             console.error('Error fetching history:', e);
@@ -101,7 +98,6 @@ function AppContent() {
 
         const newHistoryItem = {
             analysis_id: resultData.analysis_id || 'New',
-            // ⭐️ [추가] 파일명 저장
             filename: file.name,
             timestamp: new Date().toISOString(),
             original_image_url: url,
@@ -117,17 +113,15 @@ function AppContent() {
         navigate('/analysis'); 
     };
 
-    // ⭐️ [신규 기능] 히스토리 클릭 시 분석 결과 복원
+    // 히스토리 항목 클릭 시 실행되는 함수
     const handleHistorySelect = async (item) => {
         // 이미지가 없거나 처리중이면 무시
         if (!item.analysis_id || item.status === 'processing') {
-            alert("분석이 완료되지 않았거나 데이터가 없습니다.");
             return;
         }
 
         setIsLoading(true);
         try {
-            // 상세 결과 조회 (/result/<id>)
             const response = await fetch(`${BASE_URL}/result/${item.analysis_id}`);
             const data = await response.json();
 
@@ -137,10 +131,8 @@ function AppContent() {
                 setUploadedFileName(data.filename || item.filename || "Restored Image");
                 setAnalysisResult(data);
                 
-                // 페이지 이동
+                // 페이지 이동 및 스크롤
                 navigate('/analysis');
-                
-                // 스크롤 최상단으로 이동
                 window.scrollTo(0, 0);
             }
         } catch (e) {
@@ -164,7 +156,7 @@ function AppContent() {
                         fetchHistory={() => fetchHistory(projectInternalId)}
                         onUploadSuccess={handleUploadSuccess}
                         projectInternalId={projectInternalId} 
-                        // ⭐️ 히스토리 선택 핸들러 전달
+                        // ⭐️ 여기 전달 확인
                         onSelectHistory={handleHistorySelect}
                     />
                 } />
@@ -177,7 +169,7 @@ function AppContent() {
                         fetchHistory={() => fetchHistory(projectInternalId)}
                         onUploadSuccess={handleUploadSuccess}
                         projectInternalId={projectInternalId}
-                        // ⭐️ 히스토리 선택 핸들러 전달
+                        // ⭐️ 여기 전달 확인
                         onSelectHistory={handleHistorySelect}
                     />
                 } />
