@@ -1,21 +1,21 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
 
-import Header from './components/Header';
-import LandingPage from './pages/LandingPage';
-import UploadPage from './pages/UploadPage';
-import AnalysisPage from './pages/AnalysisPage';
+// ⭐️ Fix: import 경로에 .jsx 확장자를 명시하여 빌드 오류 해결
+import Header from './components/Header.jsx';
+import LandingPage from './pages/LandingPage.jsx';
+import UploadPage from './pages/UploadPage.jsx';
+import AnalysisPage from './pages/AnalysisPage.jsx';
 
 const BASE_URL = 'http://127.0.0.1:5000'; 
 
 function AppContent() {
     const navigate = useNavigate();
     
-    // [Fix 2] 초기 상태는 비어있어야 함 (가짜 데이터 제거)
+    // 초기 상태 정의
     const [projectData, setProjectData] = useState({ id: null, history: [] });
     const [projectInternalId, setProjectInternalId] = useState(null); 
     
-    // 분석 결과 데이터
     const [uploadedImageUrl, setUploadedImageUrl] = useState(null); 
     const [uploadedFileName, setUploadedFileName] = useState(null); 
     const [analysisResult, setAnalysisResult] = useState(null); 
@@ -33,6 +33,18 @@ function AppContent() {
         navigate('/');
     };
 
+    // 데이터 정제 함수
+    const normalizeHistory = (historyList) => {
+        if (!Array.isArray(historyList)) return [];
+        return historyList
+            .filter(item => item && (item.analysis_id || item.id)) 
+            .map(item => ({
+                ...item,
+                analysis_id: item.analysis_id || item.id,
+                timestamp: item.timestamp || new Date().toISOString()
+            }));
+    };
+
     const fetchHistory = async (internalId) => {
         const targetId = internalId || projectInternalId;
         if (!targetId) return;
@@ -43,13 +55,12 @@ function AppContent() {
                 body: JSON.stringify({ project_id: targetId })
             });
             const data = await response.json();
-            // 데이터가 없으면 빈 배열 사용
-            const historyList = data.history || [];
             
-            // 최신순 정렬
-            const sortedHistory = historyList.sort((a, b) => 
+            const validHistory = normalizeHistory(data.history);
+            const sortedHistory = validHistory.sort((a, b) => 
                 new Date(b.timestamp) - new Date(a.timestamp)
             );
+            
             setProjectData(prev => ({ ...prev, history: sortedHistory }));
         } catch (e) {
             console.error('Error fetching history:', e);
@@ -68,9 +79,10 @@ function AppContent() {
             const data = await response.json();
 
             if (data.result === 'success') {
-                const realId = data.project_id; 
-                // 로그인 직후에는 히스토리가 비어있거나 서버에서 준 값이어야 함
-                setProjectData({ id: code, history: data.history || [] }); 
+                const realId = data.project_id;
+                const cleanHistory = normalizeHistory(data.history);
+
+                setProjectData({ id: code, history: cleanHistory }); 
                 setProjectInternalId(realId); 
                 navigate('/upload');
             } else {
@@ -83,12 +95,32 @@ function AppContent() {
         }
     };
 
-    // [Fix 3] resultData(bbox 정보 포함)를 받아서 저장
+    // 업로드 성공 시 즉시 히스토리에 추가하는 로직 유지
     const handleUploadSuccess = (file, url, resultData) => {
         setUploadedFileName(file.name);
         setUploadedImageUrl(url);
-        // 여기서 resultData가 undefined면 박스가 안 그려짐. ImageUploadArea 수정으로 해결됨.
         setAnalysisResult(resultData); 
+
+        // 1. 새 히스토리 항목 생성
+        const newHistoryItem = {
+            analysis_id: resultData.analysis_id || 'New',
+            timestamp: new Date().toISOString(),
+            original_image_url: url,
+            status: 'completed'
+        };
+
+        // 2. 상태 업데이트 (기존 목록 앞에 추가)
+        setProjectData(prev => {
+            // 중복 추가 방지
+            const exists = prev.history.some(h => h.analysis_id === newHistoryItem.analysis_id);
+            if (exists) return prev;
+            
+            return {
+                ...prev,
+                history: [newHistoryItem, ...prev.history]
+            };
+        });
+
         navigate('/analysis'); 
     };
 

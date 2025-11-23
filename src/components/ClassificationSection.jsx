@@ -1,5 +1,4 @@
 import * as React from "react";
-// 스타일 파일이 pages 폴더에 있으므로 경로를 맞춰줍니다.
 import styles from "../pages/InputDesign.module.css";
 
 function ClassificationSection() {

@@ -178,21 +178,13 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
             </div>
 
             {/* 2. 상단 업로드 영역 (ImageUploadArea 재사용) */}
-            <div style={{
-                width: '100%',
-                display: 'flex', 
-                justifyContent: 'center', 
-                marginTop: '20px' 
-            }}>
-                <div style={{ width: '90%', maxWidth: '800px', marginTop: '20px' }}>
-                    <ImageUploadArea 
-                        projectId={projectInternalId}
-                        fetchHistory={fetchHistory}
-                        onUploadSuccess={onUploadSuccess}
-                    />
-                </div>
+            <div style={{ marginTop: '30px', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                <ImageUploadArea 
+                    projectId={projectInternalId}
+                    fetchHistory={fetchHistory}
+                    onUploadSuccess={onUploadSuccess}
+                />
             </div>
-
             
             {/* 3. 메인 컨텐츠 영역 (좌우 2열 구조) */}
             <div className={styles.contentContainer}>
@@ -202,18 +194,10 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
 
             {/* 4. 하단 결과 요약 및 PDF 버튼 */}
             <ResultSection analysisResult={analysisResult} />
-
+            
             {/* 5. 최하단 히스토리 목록 */}
-            <div style={{
-                width: '100%', 
-                display: 'flex', 
-                justifyContent: 'center', 
-                marginTop: '30px' 
-            }}>
-                <div style={{ width: '90%', maxWidth: '1200px', marginTop: '30px' }}>
-                    <HistoryList history={history} />
-                </div>
-
+            <div style={{ width: '90%', maxWidth: '800px', marginTop: '40px' }}>
+                <HistoryList history={history} />
             </div>
                 
 
