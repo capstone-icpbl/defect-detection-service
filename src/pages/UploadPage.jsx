@@ -1,6 +1,6 @@
 import React from 'react';
 // Header, ProjectImage, ImageUploadArea를 불러옵니다.
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import ProjectImage from '../components/ProjectImage'; 
 import ImageUploadArea from '../components/ImageUploadArea'; 
 // 페이지의 전체 스타일을 불러옵니다.
@@ -88,9 +88,6 @@ function UploadPage({ projectData, fetchHistory }) {
 
     return (
         <main className={styles.uploadPage} role="main"> 
-            {/* 1. 상단바 배치 */}
-            <Header />
-            
             {/* 2. 프로젝트 섹션 배치 (래퍼 + 통합 이미지) */}
             <div className={styles.projectNameSection}>
                 {/* 프로젝트 ID를 ProjectImage에 전달하여 이름 등을 표시할 수 있도록 합니다. */}

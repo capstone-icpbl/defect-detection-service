@@ -32,7 +32,7 @@
     /* 랜딩 페이지에서 ProjectImage를 강조하기 위한 스타일 */
     background-color: #ffffff;
     padding: 20px;
-    border-radius: 0px;
+    border-radius: 8px;
     box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 700px;
@@ -51,8 +51,7 @@
     width: 100%;
     height: auto;
     display: block;
-    border-radius: 0px;
-}
+    border-radius: 0px;        /* 둥근 모서리 */}
 
 .pageTitle {
     font-size: 24px;

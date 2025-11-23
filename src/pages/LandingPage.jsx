@@ -1,8 +1,8 @@
 import React, { useState, useRef } from 'react';
-import styles from './LandingPage.module.css';
+import styles from '../pages/LandingPage.module.css';
 
 // 재사용 가능한 컴포넌트들을 import 합니다.
-import Header from '../components/Header';
+// import Header from '../components/Header';
 import ProjectImage from '../components/ProjectImage'; // 통합된 이미지 컴포넌트 사용
 
 
@@ -77,9 +77,6 @@ function CodeInput({ onAccessSubmit, isLoading, error }) {
 function LandingPage({ onAccessSubmit, isLoading, error }) {
     return (
         <div className={styles.container}>
-            {/* 1. Header 컴포넌트 */}
-            <Header /> 
-            
             {/* 2. Main Content 영역 (래퍼) */}
             <div className={styles.mainContent}>
                 {/* FIX: 새로운 래퍼 div로 ProjectImage를 감싸서 배경색과 크기를 제어합니다. */}

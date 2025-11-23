@@ -1,98 +1,140 @@
 /* --- Global Reset & Page Wrapper --- */
 .uploadPage {
-    background-color: #fff;
+    background-color: #f8f8f8;
+    /* 배경색을 약간 더 밝게 */
     font-family: Inter, -apple-system, Roboto, Helvetica, sans-serif;
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     align-items: center;
+    width: 100%;
 }
 
-/* --- Header Consistency (Using LandingPage styles as reference) --- */
-/* Header.jsx는 LandingPage.module.css의 .header 스타일을 사용합니다. */
-
-/* --- Project Name Section (Banner Wrapper) --- */
-/* 이 섹션은 ProjectImage 컴포넌트를 감싸며, UploadPage의 배너 역할을 합니다. */
+/* ---------------------------------------------------- */
+/* --- ⭐️ Project Name Section (Banner Wrapper) 수정 --- */
+/* ---------------------------------------------------- */
 .projectNameSection {
-    background-color: #eaeaea;
+    /* ⭐️ 1. 배경색을 흰색으로 변경 (랜딩 페이지의 heroImageWrapper와 동일) */
+    background-color: #ffffff;
     justify-content: center;
     align-items: center;
-    width: 700px;
-    /* UploadPage의 특정 너비 */
-    height: 200px;
-    /* UploadPage의 특정 높이 */
-    max-width: 90%;
+
+    /* 너비 및 높이 재정의 */
+    width: 100%;
+    max-width: 700px;
+    /* ⭐️ 2. 랜딩 페이지와 동일한 최대 너비 사용 */
+    min-height: 150px;
+    /* 높이 대신 최소 높이 사용 */
+    height: auto;
 
     display: flex;
-    position: absolute;
-    /* 메인 콘텐츠 영역을 기준으로 위치 지정 */
-    /* FIX: 헤더 영역 아래에 위치하되, 헤더의 큰 패딩 영역과 시각적으로 이어지도록 조정 */
-    top: 100px;
-    left: 50%;
-    transform: translate(-50%);
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    position: relative;
+    margin-top: 30px;
+    /* 이전 단계에서 설정한 간격 유지 */
+
+    /* ⭐️ 3. 모서리 둥글게 처리 및 그림자 효과 추가 */
+    border-radius: 8px;    /* 둥근 모서리 */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);     /* 랜딩 페이지와 유사한 그림자 */
+
+    /* 내부 ProjectImage 컴포넌트가 래퍼에 잘 맞도록 패딩 추가 */
+    padding: 20px;
+
     z-index: 5;
 }
 
+/* --- Project Image Component Style (ProjectImage 컴포넌트 내부 스타일) --- */
 .heroImage {
-    /* ProjectImage 컴포넌트 내부의 이미지 */
-    aspect-ratio: 3.5;
-    /* 700/200 = 3.5 */
-    object-fit: cover;
-    object-position: center;
+    /* 이미지는 부모 래퍼의 100%에 맞춥니다. */
     width: 100%;
-    height: 100%;
-    border-radius: 10px;
+    height: auto;
+    display: block;
+    border-radius: 0px;
+    object-fit: contain;
+    /* 이미지 비율을 유지하면서 래퍼에 맞춤 */
 }
 
-/* --- Image Upload Area Wrapper --- */
+/* @media (max-width: 991px) {
+    .projectNameSection {
+        height: 150px;
+    }
+} */
+/* --- ProjectImage 내부 스타일은 ProjectImage.module.css에서 관리하는 것이 좋습니다. --- */
+
+
+/* ---------------------------------------------------- */
+/* --- ⭐️ Image Upload Area Wrapper (uploadContainer) --- */
+/* ---------------------------------------------------- */
 .uploadContainer {
     display: flex;
     flex-direction: column;
     align-items: center;
-    width: 800px;
-    max-width: 90%;
-    margin-top: 130px;
-    /* Offset from header/banner */
+    width: 90%;
+    /* 배너와 동일한 너비 사용 */
+    max-width: 800px;
+    /* 이전의 absolute position 제거로 인한 마진 조정 */
+    margin-top: 50px;
+    /* 배너 아래 간격 */
     margin-bottom: 50px;
-    /* Space before history */
     z-index: 10;
+    padding: 0 10px;
+    /* 좌우 패딩 추가 */
 }
 
-/* --- Upload Preview (Drag & Drop Area) --- */
+/* --- ⭐️ Upload Preview (Drag & Drop Area) --- */
 .uploadPreview {
-    background-color: #f7f7f7;
-    border: 2px dashed #ccc;
+    background-color: #fff;
+    /* 배경색을 흰색으로 변경 */
+    border: 3px dashed #d0d0d0;
+    /* 대시 스타일 및 색상 조정 */
     border-radius: 12px;
     cursor: pointer;
     text-align: center;
     padding: 60px 20px;
     width: 100%;
-    /* .uploadContainer 너비에 맞춤 */
     margin-bottom: 20px;
-    /* 버튼과 간격 */
-    transition: background-color 0.3s, border-color 0.3s;
+    transition: background-color 0.3s, border-color 0.3s, box-shadow 0.3s;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 10px;
+    gap: 15px;
+    /* 간격 늘림 */
     position: relative;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
+/* ⭐️ 드래그 활성화 시 시각적 피드백 강화 */
 .uploadPreview.active {
-    background-color: #e0f7fa;
-    border-color: #00bcd4;
+    background-color: #e3f2fd;
+    /* Light Blue */
+    border-color: #2196f3;
+    /* Primary Blue */
+    box-shadow: 0 0 0 5px rgba(33, 150, 243, 0.3);
+    /* 포커스 효과 */
 }
+
+/* ⭐️ 파일이 선택되었을 때의 스타일 */
+.uploadPreview:not(.active) {
+    /* 파일이 선택되지 않은 일반 상태 */
+    border-color: #ccc;
+}
+
+.uploadPreview:not(.active):hover {
+    border-color: #999;
+}
+
 
 .uploadSvgIcon {
-    width: 30px;
-    height: 30px;
-    opacity: 0.7;
+    width: 40px;
+    /* 아이콘 크기 증가 */
+    height: 40px;
+    color: #007bff;
+    /* 아이콘 색상 변경 */
+    opacity: 0.9;
 }
 
 .previewMsg {
-    font-size: 18px;
+    font-size: 20px;
+    /* 메시지 글꼴 크기 증가 */
     font-weight: 600;
     color: #333;
     margin: 0;
@@ -100,30 +142,28 @@
 
 .previewDesc {
     font-size: 14px;
-    color: #777;
+    color: #888;
     margin: 0;
 }
 
-.hiddenFileInput {
-    display: none;
-}
-
+/* --- Integrated Search Info (Project ID Display) --- */
 .integratedSearchInfo {
     display: flex;
     align-items: center;
     gap: 8px;
     margin-top: 15px;
-    /* Added space above the info */
-    background-color: #fff;
+    background-color: #f0f0f0;
+    /* 배경색 변경 */
     border: 1px solid #ddd;
     border-radius: 20px;
     padding: 5px 15px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    box-shadow: none;
 }
 
 .searchIcon {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+    color: #555;
 }
 
 .searchText {
@@ -134,7 +174,6 @@
 /* --- Upload Button Styles --- */
 .uploadButton {
     background-color: #007bff;
-    /* Primary blue */
     color: white;
     font-size: 18px;
     font-weight: 700;
@@ -143,8 +182,8 @@
     border-radius: 8px;
     cursor: pointer;
     width: 100%;
-    max-width: 300px;
-    /* 깔끔한 중앙 버튼 */
+    max-width: 400px;
+    /* 버튼 너비 확장 */
     transition: background-color 0.3s, opacity 0.3s, transform 0.1s;
     box-shadow: 0 4px 10px rgba(0, 123, 255, 0.3);
 }
@@ -157,140 +196,54 @@
 .uploadButton:disabled {
     background-color: #ccc;
     cursor: not-allowed;
-    opacity: 0.8;
+    opacity: 0.7;
     box-shadow: none;
 }
 
 .uploadButton.uploading {
     background-color: #ff9800;
-    /* Loading: Orange */
     cursor: wait;
     opacity: 0.9;
 }
 
-/* --- Status Message Styles --- */
-.statusMessage {
-    margin-top: 15px;
-    padding: 10px 20px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    width: 100%;
-    max-width: 500px;
-    text-align: center;
-}
-
-.statusMessage.success {
-    background-color: #e8f5e9;
-    /* Light green */
-    color: #4caf50;
-    /* Darker green text */
-    border: 1px solid #4caf50;
-}
-
-.statusMessage.error {
-    background-color: #ffebee;
-    /* Light red */
-    color: #f44336;
-    /* Darker red text */
-    border: 1px solid #f44336;
-}
-
-.statusMessage.empty {
-    /* Loading/Processing status */
-    background-color: #fff3e0;
-    /* Light orange */
-    color: #ff9800;
-    /* Darker orange text */
-    border: 1px solid #ff9800;
-}
-
 /* --- History Section Styles --- */
 .historySection {
-    width: 800px;
-    max-width: 90%;
+    width: 90%;
+    max-width: 800px;
+    /* 업로드 컨테이너와 동일 */
     margin-top: 20px;
     margin-bottom: 50px;
     padding: 20px;
-    background-color: #f7f7f7;
-    border-radius: 12px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.historyTitle {
-    font-size: 20px;
-    font-weight: 700;
-    color: #333;
-    margin-top: 0;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #eee;
-    padding-bottom: 10px;
-}
-
-.historyList {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.historyItem {
-    display: flex;
-    align-items: flex-start;
-    /* 상단 정렬 */
     background-color: #fff;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-    transition: transform 0.2s;
+    /* 배경색을 흰색으로 변경 */
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+    /* 그림자 조정 */
+    border: 1px solid #eee;
 }
 
-.historyItem:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
-}
+/* --- Responsive Adjustments --- */
+@media (max-width: 768px) {
 
-.historyImage {
-    width: 100px;
-    height: 70px;
-    object-fit: cover;
-    border-radius: 4px;
-    margin-right: 15px;
-    flex-shrink: 0;
-}
+    .uploadContainer,
+    .historySection,
+    .projectNameSection {
+        width: 95%;
+        /* 모바일에서 너비 확대 */
+        padding: 0 10px;
+    }
 
-.historyDetails {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-}
+    .uploadPreview {
+        padding: 40px 15px;
+        gap: 10px;
+    }
 
-.historySummary {
-    font-size: 16px;
-    font-weight: 600;
-    color: #333;
-    margin: 0 0 5px 0;
-}
+    .previewMsg {
+        font-size: 18px;
+    }
 
-.historyDate {
-    font-size: 12px;
-    color: #999;
-    margin: 0;
-}
-
-.historyStatus {
-    font-size: 12px;
-    font-weight: 700;
-    color: #007bff;
-    /* Blue for status */
-    margin-top: 5px;
-}
-
-.historyNoData {
-    text-align: center;
-    color: #777;
-    padding: 20px;
-    font-style: italic;
+    .uploadButton {
+        max-width: 100%;
+        font-size: 16px;
+    }
 }
