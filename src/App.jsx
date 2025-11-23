@@ -7,7 +7,7 @@ import LandingPage from './pages/LandingPage';
 import UploadPage from './pages/UploadPage';
 import AnalysisPage from './pages/AnalysisPage';
 
-// API 설정
+// API 설정 (Flask 서버 주소)
 const BASE_URL = 'http://127.0.0.1:5000'; 
 
 function AppContent() {
@@ -23,7 +23,7 @@ function AppContent() {
     const [projectData, setProjectData] = useState({ id: null, history: [] });
     const [projectInternalId, setProjectInternalId] = useState(null); 
     
-    // 분석 데이터
+    // 분석 데이터 (결과 화면용)
     const [uploadedImageUrl, setUploadedImageUrl] = useState(null); 
     const [uploadedFileName, setUploadedFileName] = useState(null); 
     const [analysisResult, setAnalysisResult] = useState(null); 
@@ -47,16 +47,23 @@ function AppContent() {
 
     // 히스토리 조회
     const fetchHistory = async (internalId) => {
-        if (!internalId) return;
+        // internalId가 없으면 현재 state의 ID 사용
+        const targetId = internalId || projectInternalId;
+
+        if (!targetId) return;
         try {
             const response = await fetch(`${BASE_URL}/history`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ project_id: internalId })
+                body: JSON.stringify({ project_id: targetId })
             });
             const data = await response.json();
             if (data.history) {
-                setProjectData(prev => ({ ...prev, history: data.history }));
+                // 최신순 정렬 (timestamp가 있다고 가정)
+                const sortedHistory = data.history.sort((a, b) => 
+                    new Date(b.timestamp) - new Date(a.timestamp)
+                );
+                setProjectData(prev => ({ ...prev, history: sortedHistory }));
             }
         } catch (e) {
             console.error('Error fetching history:', e);
@@ -128,6 +135,10 @@ function AppContent() {
                         imageUrl={uploadedImageUrl}
                         fileName={uploadedFileName}
                         analysisResult={analysisResult}
+                        // 👇 AnalysisPage에서도 업로드 및 히스토리 갱신이 가능하도록 props 전달
+                        fetchHistory={() => fetchHistory(projectInternalId)}
+                        onUploadSuccess={handleUploadSuccess}
+                        projectInternalId={projectInternalId}
                     />
                 } />
             </Routes>
