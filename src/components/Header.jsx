@@ -1,50 +1,46 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom'; // 💡 import 유지
+// CSS 모듈 import
 import styles from './Header.module.css';
 
-const Header = () => {
-  const navigate = useNavigate(); // 💡 훅 사용
+const Header = ({ projectId, onReset }) => {
   
-  const handleProjectTitleClick = () => {
-    console.log("Navigating to Home/Landing Page via Project Title");
-  };
-  
-  const handleAddProject = () => {
-    console.log("Add Project Button Clicked");
-  };
-
-  // 💡 임시 버튼 클릭 핸들러 정의 (실제 라우팅 로직을 넣을 곳)
-  const handleTestButtonClick = () => {
-        console.log("Navigating to Upload Page (Temporary)");
-        navigate('/upload'); // 💡 '/upload' 경로로 이동
+  // 초기화 및 홈 이동 핸들러
+  const handleHomeClick = () => {
+    if (onReset) {
+      onReset(); 
+    } else {
+      window.location.href = '/'; 
+    }
   };
 
   return (
     <header className={styles.header}>
-      <h1 className={styles.projectTitle}>
-        IC-PBL Capstone Design 3H
-      </h1>      
-      {/* 2. 네비게이션 섹션 */}
-      <nav className={styles.navigation}>
-        <button className={styles.addTestButton} onClick={handleTestButtonClick}>
-          <span className={styles.buttonText}>
-            임시이동
-          </span>
+      {/* 왼쪽: 로고 (아이콘 제거됨) */}
+      <div 
+        onClick={handleHomeClick}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+      >
+        <h2 className={styles.projectTitle}>
+          IC-PBL Capstone 3H
+        </h2>
+      </div>
 
-        </button>
-         <span className={styles.currentLocation} aria-current="page">
+      {/* 오른쪽: 네비게이션 */}
+      <nav className={styles.navigation}>
+        <span className={styles.currentLocation}>
           You're here!
         </span>
-
-        <span className={styles.projectName}>
-          #projectname
+        
+        {/* 접속 코드 표시 */}
+        <span className={`${styles.projectTag} ${projectId ? styles.connected : styles.disconnected}`}>
+          {projectId ? `#${projectId}` : '#Not_Connected'}
         </span>
 
-        {/* 새 프로젝트 추가 버튼 */}
-        <button className={styles.addProjectButton} onClick={handleAddProject}>
-          <span className={styles.buttonText}>
-            프로젝트 추가
-          </span>
+        <button 
+            className={styles.addProjectButton}
+            onClick={handleHomeClick}
+        >
+          프로젝트 추가
         </button>
       </nav>
     </header>
