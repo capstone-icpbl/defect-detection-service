@@ -1,54 +1,68 @@
-// src/components/HistoryList.jsx
 import React from 'react';
-import styles from '../pages/UploadPage.module.css'; // 스타일 재사용
+import styles from '../pages/UploadPage.module.css';
 
 const HistoryList = ({ history }) => {
-    // 날짜 포맷팅 함수
+    // 안전하게 배열 보장
+    const safeHistory = history || [];
+
     const formatDate = (timestamp) => {
         if (!timestamp) return '-';
         return new Date(timestamp).toLocaleString();
     };
 
     return (
-        <div className={styles.historySection}>
+        <div className={styles.historySection} style={{ marginTop: '20px', width: '100%' }}>
             <h3 className={styles.historyTitle} style={{ marginBottom: '20px' }}>
                 📜 최근 분석 이력
             </h3>
             
-            {(!history || history.length === 0) ? (
-                <p style={{ color: '#888', textAlign: 'center', padding: '20px' }}>
-                    아직 분석 기록이 없습니다.
-                </p>
+            {safeHistory.length === 0 ? (
+                <div style={{ 
+                    padding: '40px', 
+                    textAlign: 'center', 
+                    color: '#888', 
+                    backgroundColor: '#f8f9fa', 
+                    borderRadius: '8px',
+                    border: '1px dashed #ccc'
+                }}>
+                    <p style={{ fontSize: '16px', marginBottom: '8px' }}>아직 분석 기록이 없습니다.</p>
+                    <p style={{ fontSize: '14px' }}>이미지를 업로드하여 첫 번째 분석을 시작해보세요!</p>
+                </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {history.map((item, idx) => (
+                    {safeHistory.map((item, idx) => (
                         <div key={idx} style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
                             padding: '15px', 
                             border: '1px solid #eee', 
                             borderRadius: '8px',
-                            backgroundColor: '#f8f9fa'
+                            backgroundColor: '#fff',
+                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
                         }}>
-                            {/* 썸네일 (서버에서 URL을 준다고 가정, 없으면 플레이스홀더) */}
+                            {/* 썸네일 */}
                             <div style={{ 
                                 width: '60px', 
                                 height: '60px', 
                                 borderRadius: '4px', 
                                 overflow: 'hidden', 
-                                backgroundColor: '#ddd',
+                                backgroundColor: '#f0f0f0',
                                 marginRight: '15px',
-                                flexShrink: 0
+                                flexShrink: 0,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px solid #eee'
                             }}>
                                 {item.original_image_url ? (
                                     <img src={item.original_image_url} alt="thumbnail" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                                 ) : (
-                                    <span style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', fontSize: '20px' }}>📷</span>
+                                    <span style={{ fontSize: '20px' }}>🖼️</span>
                                 )}
                             </div>
 
                             <div style={{ flex: 1 }}>
-                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '4px' }}>
+                                <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '4px', color: '#333' }}>
                                     분석 ID #{item.analysis_id || 'Unknown'}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#666' }}>
@@ -56,14 +70,14 @@ const HistoryList = ({ history }) => {
                                 </div>
                             </div>
 
-                            {/* 상태 뱃지 (예시) */}
                             <div style={{ 
                                 padding: '6px 12px', 
                                 borderRadius: '20px', 
                                 fontSize: '12px', 
                                 fontWeight: 'bold',
                                 backgroundColor: '#e8f5e9',
-                                color: '#2e7d32'
+                                color: '#2e7d32',
+                                whiteSpace: 'nowrap'
                             }}>
                                 완료됨
                             </div>
