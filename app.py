@@ -139,7 +139,7 @@ def generate_summary_text(detections):
         
     return summary
 
-# --- 기존 헬퍼 함수 ---
+# --- 기존 헬퍼 함수 (수정됨) ---
 def make_history_list(results):
     history_data = []
     for r in results:
@@ -152,7 +152,7 @@ def make_history_list(results):
         summary_text = f"결함 {defect_count}개 발견"
 
         history_data.append({
-            "id": r.id,
+            "analysis_id": r.id,  # ⭐️ [수정] id -> analysis_id 로 키 이름 변경 (프론트엔드와 통일)
             "image_url": r.original_image_url,
             "status": r.status,
             "summary": summary_text,
@@ -268,7 +268,7 @@ def get_result(analysis_id):
         return jsonify({"status": "processing", "error": str(e)})
 
 
-# 4. 리포트 (B2B 실무용 - 로고/결재란 제거 버전)
+# 4. 리포트 
 @app.route('/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
@@ -283,7 +283,7 @@ def get_report(analysis_id):
             def footer(self):
                 self.set_y(-15)
                 try:
-                    self.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
+                    self.add_font('Nanum', '', 'NanumGothic.ttf')
                     self.set_font('Nanum', '', 8)
                 except:
                     self.set_font('Helvetica', 'I', 8)
@@ -295,8 +295,8 @@ def get_report(analysis_id):
         
         # 폰트 로드
         try:
-            pdf.add_font('Nanum', '', 'NanumGothic.ttf', uni=True)
-            pdf.add_font('NanumB', 'B', 'NanumGothic.ttf', uni=True)
+            pdf.add_font('Nanum', '', 'NanumGothic.ttf')
+            pdf.add_font('NanumB', 'B', 'NanumGothic.ttf')
             base_font = 'Nanum'
             bold_font = 'NanumB'
         except:
@@ -412,7 +412,8 @@ def get_report(analysis_id):
         pdf.multi_cell(0, 5, "※ 본 보고서는 AI 분석 결과로, 실제 육안 검사 결과와 차이가 있을 수 있습니다.", align='C')
 
         # PDF 반환
-        response = make_response(pdf.output(dest='S'))
+        pdf_bytes = pdf.output()  # 옵션 없이 호출하면 bytearray 반환
+        response = make_response(bytes(pdf_bytes))
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename=Report_{analysis_id}.pdf'
         return response

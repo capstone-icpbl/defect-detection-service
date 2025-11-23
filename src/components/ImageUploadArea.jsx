@@ -66,7 +66,7 @@ function ImageUploadArea({ projectId, fetchHistory, onUploadSuccess }) {
         }
 
         setIsUploading(true);
-        setUploadStatus({ type: 'empty', message: 'AI 분석 중입니다...' });
+        setUploadStatus({ type: 'empty' }); // 분석 중입니다.. 없앰
 
         try {
             // Step 1: 이미지 업로드 (/predict)

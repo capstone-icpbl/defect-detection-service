@@ -1,9 +1,13 @@
 import React from 'react';
+// 스타일 파일 경로 재확인: src/components -> src/pages/UploadPage.module.css
 import styles from '../pages/UploadPage.module.css';
 
 const HistoryList = ({ history }) => {
-    // 안전하게 배열 보장
-    const safeHistory = history || [];
+    // 1. 배열 안전성 확보
+    const rawHistory = Array.isArray(history) ? history : [];
+
+    // 2. 강력 필터링: analysis_id가 있는 항목만 표시
+    const validHistory = rawHistory.filter(item => item.analysis_id);
 
     const formatDate = (timestamp) => {
         if (!timestamp) return '-';
@@ -16,7 +20,7 @@ const HistoryList = ({ history }) => {
                 📜 최근 분석 이력
             </h3>
             
-            {safeHistory.length === 0 ? (
+            {validHistory.length === 0 ? (
                 <div style={{ 
                     padding: '40px', 
                     textAlign: 'center', 
@@ -30,7 +34,7 @@ const HistoryList = ({ history }) => {
                 </div>
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                    {safeHistory.map((item, idx) => (
+                    {validHistory.map((item, idx) => (
                         <div key={idx} style={{ 
                             display: 'flex', 
                             alignItems: 'center', 
@@ -63,7 +67,7 @@ const HistoryList = ({ history }) => {
 
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '4px', color: '#333' }}>
-                                    분석 ID #{item.analysis_id || 'Unknown'}
+                                    분석 ID #{item.analysis_id}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#666' }}>
                                     {formatDate(item.timestamp)}
