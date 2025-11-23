@@ -25,7 +25,7 @@ const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInterna
 
             {/* 3. 하단 히스토리 목록 */}
             <div style={{ width: '90%', maxWidth: '800px', marginTop: '40px' }}>
-                <HistoryList history={history} />
+                <HistoryList history={history} onSelectHistory={onSelectHistory} />
             </div>
         </div>
     );

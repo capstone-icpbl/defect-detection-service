@@ -88,8 +88,7 @@ function ImageUploadArea({ projectId, fetchHistory, onUploadSuccess }) {
                 });
 
                 setUploadStatus({ 
-                    type: 'success', 
-                    message: `분석 완료! (ID: ${analysisId})` 
+                    type: 'success' 
                 });
 
                 if (fetchHistory) fetchHistory();
