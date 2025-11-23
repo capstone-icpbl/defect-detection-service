@@ -32,11 +32,9 @@ function AppContent() {
     // 2. HANDLERS
     // ==============================
 
-    // ⭐️ [NEW] 상태 초기화 및 홈으로 이동 (로그아웃/처음으로)
+    // 상태 초기화 및 홈으로 이동 (로그아웃/처음으로)
     const handleReset = () => {
         console.log("Session Reset: 모든 상태를 초기화하고 홈으로 이동합니다.");
-        
-        // 모든 State를 초기값으로 리셋
         setProjectData({ id: null, history: [] });
         setProjectInternalId(null);
         setUploadedImageUrl(null);
@@ -44,8 +42,6 @@ function AppContent() {
         setAnalysisResult(null);
         setError(null);
         setIsLoading(false);
-
-        // 랜딩 페이지로 이동
         navigate('/');
     };
 
@@ -94,6 +90,7 @@ function AppContent() {
         }
     };
 
+    // 업로드 성공 시 처리
     const handleUploadSuccess = (file, url, resultData) => {
         setUploadedFileName(file.name);
         setUploadedImageUrl(url);
@@ -101,43 +98,13 @@ function AppContent() {
         navigate('/analysis'); 
     };
 
-    // 🛠️ [DEBUG] 분석 페이지 강제 이동 함수
-    const debugMoveToAnalysis = () => {
-        console.log("🛠️ 디버그: 분석 페이지로 강제 이동");
-        setProjectData({ id: 'DEBUG_MODE', history: [] });
-        setUploadedFileName('debug_sample_car.jpg');
-        setUploadedImageUrl('https://placehold.co/800x600/2563eb/white?text=Debug+Car+Image');
-        setAnalysisResult({
-            analysis_id: 999,
-            status: 'completed',
-            details: [
-                { class: 'Scratch', confidence: 0.95, bbox: [100, 100, 200, 200] },
-                { class: 'Dent', confidence: 0.82, bbox: [300, 300, 400, 400] }
-            ]
-        });
-        navigate('/analysis');
-    };
-
     return (
         <div className="app-container">
-            {/* ⭐️ Header에 projectId와 onReset 함수 전달 */}
+            {/* Header에 projectId와 onReset 함수 전달 */}
             <Header 
                 projectId={projectData.id} 
                 onReset={handleReset} 
             />
-
-            <button 
-                onClick={debugMoveToAnalysis}
-                style={{
-                    position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999,
-                    padding: '12px 24px', backgroundColor: '#e11d48', color: 'white',
-                    border: 'none', borderRadius: '50px', fontWeight: 'bold',
-                    boxShadow: '0 4px 15px rgba(225, 29, 72, 0.4)', cursor: 'pointer',
-                    fontSize: '14px'
-                }}
-            >
-                🚀 분석 페이지 바로가기
-            </button>
 
             <Routes>
                 <Route path="/" element={
