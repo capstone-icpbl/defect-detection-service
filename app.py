@@ -203,7 +203,7 @@ def get_report(analysis_id):
         
         # 제목
         pdf.set_font('Nanum', '', 20)
-        pdf.cell(0, 15, f'모빌리티 표면 분석 보고서', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
+        pdf.cell(0, 15, f'흠집 탐지 분석 보고서', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
         
         pdf.set_font('Nanum', '', 12)
         pdf.cell(0, 10, f"프로젝트: {result.project.access_code} / 날짜: {result.created_at.strftime('%Y-%m-%d')}", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')

@@ -1,9 +1,7 @@
 from ultralytics import YOLO
 import json
 
-print("⏳ 모델 로딩 중... (inference.py)")
 model = YOLO("best.pt")
-print(f"✅ 모델 로드 완료! (학습된 클래스: {model.names})")
 
 def run_inference(image_path_or_url):
     """
