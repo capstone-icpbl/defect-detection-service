@@ -1,8 +1,8 @@
 import React from 'react';
-// 스타일 파일 경로 재확인: src/components -> src/pages/UploadPage.module.css
 import styles from '../pages/UploadPage.module.css';
 
-const HistoryList = ({ history }) => {
+// ⭐️ onSelectHistory prop 추가
+const HistoryList = ({ history, onSelectHistory }) => {
     // 1. 배열 안전성 확보
     const rawHistory = Array.isArray(history) ? history : [];
 
@@ -11,12 +11,18 @@ const HistoryList = ({ history }) => {
 
     const formatDate = (timestamp) => {
         if (!timestamp) return '-';
-        return new Date(timestamp).toLocaleString();
+        return new Date(timestamp).toLocaleString('ko-KR', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     };
 
     return (
         <div className={styles.historySection} style={{ marginTop: '20px', width: '100%' }}>
-            <h3 className={styles.historyTitle} style={{ marginBottom: '20px' }}>
+            <h3 className={styles.historyTitle} style={{ marginBottom: '20px', fontSize: '20px', fontWeight: 'bold' }}>
                 📜 최근 분석 이력
             </h3>
             
@@ -36,11 +42,12 @@ const HistoryList = ({ history }) => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {validHistory.map((item, idx) => (
                         <div 
-                            key={idx} 
-                            // ⭐️ 클릭 이벤트 강화 (버블링 방지 및 전달)
-                            onClick={(e) => {
-                                e.stopPropagation(); 
-                                if (onSelectHistory) onSelectHistory(item);
+                            key={item.analysis_id || idx}
+                            // ⭐️ 클릭 이벤트 핸들러 수정
+                            onClick={() => {
+                                if (onSelectHistory) {
+                                    onSelectHistory(item);
+                                }
                             }}
                             style={{ 
                                 display: 'flex', 
@@ -51,15 +58,14 @@ const HistoryList = ({ history }) => {
                                 backgroundColor: '#fff',
                                 boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
                                 cursor: 'pointer',
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                // ⭐️ 가려짐 방지를 위한 스타일
+                                transition: 'all 0.2s ease',
                                 position: 'relative',
                                 zIndex: 10,
                                 userSelect: 'none'
                             }}
                             onMouseEnter={(e) => {
                                 e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
                                 e.currentTarget.style.borderColor = '#007bff';
                             }}
                             onMouseLeave={(e) => {
@@ -68,7 +74,7 @@ const HistoryList = ({ history }) => {
                                 e.currentTarget.style.borderColor = '#eee';
                             }}
                         >
-                            {/* 1. 실제 이미지 썸네일 표시 */}
+                            {/* 1. 썸네일 이미지 */}
                             <div style={{ 
                                 width: '60px', 
                                 height: '60px', 
@@ -89,24 +95,26 @@ const HistoryList = ({ history }) => {
                                         style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
                                     />
                                 ) : (
-                                    <span style={{ fontSize: '20px' }}>🖼️</span>
+                                    <span style={{ fontSize: '24px' }}>🖼️</span>
                                 )}
                             </div>
 
+                            {/* 2. 분석 정보 */}
                             <div style={{ flex: 1 }}>
-                                {/* 2. 분석 ID 대신 파일명 표시 (없으면 ID를 백업으로 표시) */}
                                 <div style={{ 
                                     fontWeight: 'bold', 
                                     fontSize: '16px', 
                                     marginBottom: '4px', 
                                     color: '#333' 
                                 }}>
-                                    {item.filename || `분석 ID #${item.analysis_id || item.id}`}
+                                    {item.filename || `분석 #${item.analysis_id}`}
                                 </div>
-                                <div style={{ fontSize: '12px', color: '#666' }}>
+                                <div style={{ fontSize: '13px', color: '#666' }}>
                                     {formatDate(item.timestamp || item.date)}
                                 </div>
                             </div>
+
+                            {/* 3. 상태 뱃지 */}
                             <div style={{ 
                                 padding: '6px 12px', 
                                 borderRadius: '20px', 
@@ -116,7 +124,7 @@ const HistoryList = ({ history }) => {
                                 color: '#2e7d32',
                                 whiteSpace: 'nowrap'
                             }}>
-                                완료됨
+                                ✓ 완료
                             </div>
                         </div>
                     ))}
