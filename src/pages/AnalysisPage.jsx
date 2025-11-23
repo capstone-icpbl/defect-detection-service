@@ -166,7 +166,7 @@ const ResultSection = ({ analysisResult }) => {
 };
 
 // 메인 페이지 컴포넌트
-function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHistory, onUploadSuccess, projectInternalId }) {
+function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHistory, onUploadSuccess, projectInternalId, onSelectHistory }) {
     const { id: projectId, history } = projectData;
 
     return (

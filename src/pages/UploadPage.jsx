@@ -4,7 +4,7 @@ import ImageUploadArea from '../components/ImageUploadArea'; // 공통 컴포넌
 import HistoryList from '../components/HistoryList';         // 히스토리 컴포넌트 추가
 import styles from './UploadPage.module.css';
 
-const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInternalId }) => {
+const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInternalId, onSelectHistory }) => {
     const { id: projectCode, history } = projectData;
 
     return (
