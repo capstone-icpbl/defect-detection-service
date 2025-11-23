@@ -1,68 +1,120 @@
 import React from 'react';
 import ProjectImage from '../components/ProjectImage'; 
-// UploadPage와 동일한 스타일 사용
-import styles from './UploadPage.module.css'; 
+// 분리된 전용 스타일 파일 import
+import styles from './AnalysisPage.module.css'; 
 
-/**
- * 업로드된 이미지를 표시하는 컴포넌트입니다.
- * ImageUploadArea 대신 사용됩니다.
- */
-const UploadedImageViewer = ({ imageUrl, fileName }) => {
+// 1. [좌측] 이미지 뷰어 섹션
+const ImageSection = ({ imageUrl, fileName }) => {
     return (
-        // UploadPage의 .uploadContainer 스타일을 재활용
-        <section className={styles.uploadContainer} style={{ marginTop: '150px' }}> 
-            <div className={styles.uploadPreview} style={{ border: 'none', padding: '0', backgroundColor: 'transparent' }}>
-                <h3 className={styles.previewMsg} style={{ marginBottom: '15px' }}>
-                    분석 이미지: {fileName || '이미지 없음'}
+        <section className={styles.imageSection}>
+            <div className={styles.imageCard}>
+                <h3 className={styles.sectionTitle}>
+                    🔍 분석 대상 이미지
                 </h3>
-                {imageUrl ? (
-                    <img 
-                        src={imageUrl} 
-                        alt={fileName || "Uploaded image for analysis"} 
-                        // ⭐️ UploadArea의 너비를 활용한 이미지 스타일
-                        style={{ maxWidth: '100%', maxHeight: '450px', objectFit: 'contain', border: '1px solid #ddd', borderRadius: '8px', boxShadow: '0 4px 10px rgba(0, 0, 0, 0.1)' }}
-                    />
-                ) : (
-                    <div style={{ height: '300px', width: '100%', backgroundColor: '#eee', display: 'flex', justifyContent: 'center', alignItems: 'center', borderRadius: '8px' }}>
-                        <p className={styles.previewDesc}>업로드된 이미지를 불러올 수 없습니다.</p>
-                    </div>
-                )}
+                
+                <div className={styles.imageWrapper}>
+                    {imageUrl ? (
+                        <img 
+                            src={imageUrl} 
+                            alt="Analysis Target" 
+                            className={styles.analyzedImage}
+                        />
+                    ) : (
+                        <span style={{ color: '#aaa' }}>이미지가 없습니다.</span>
+                    )}
+                </div>
+                <p className={styles.fileName}>
+                    파일명: {fileName || 'Unknown'}
+                </p>
+            </div>
+        </section>
+    );
+};
+
+// 2. [우측] 분류 섹션
+const ClassificationSection = ({ analysisResult }) => {
+    const details = analysisResult?.details || [
+        { class: 'Scratch', confidence: 0.92, bbox: [] },
+        { class: 'Dent', confidence: 0.88, bbox: [] }
+    ];
+
+    return (
+        <section className={styles.classificationSection}>
+            <div className={styles.classificationCard}>
+                <h2 className={styles.sectionTitle}>
+                    📊 흠집 유형 분류
+                </h2>
+
+                <p className={styles.classificationDesc}>
+                    AI 모델이 이미지에서 감지한<br/>
+                    결함의 종류와 신뢰도입니다.
+                </p>
+
+                <div className={styles.resultList}>
+                    {details.map((item, idx) => (
+                        <div key={idx} className={styles.resultItem}>
+                            <div>
+                                <span className={styles.classBadge}>
+                                    {item.class}
+                                </span>
+                                <div className={styles.detectedLabel}>Detected</div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                                <div className={styles.confidenceValue}>
+                                    {Math.round(item.confidence * 100)}%
+                                </div>
+                                <div className={styles.confidenceLabel}>신뢰도</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </section>
+    );
+};
+
+// 3. [하단] 결과 및 PDF 변환 섹션
+const ResultSection = ({ analysisResult }) => {
+    return (
+        <section className={styles.finalResultSection}>
+            <div style={{ flex: 1 }}>
+                <h2 className={styles.sectionTitle} style={{ marginBottom: '10px' }}>
+                    ✅ 최종 분석 결과 요약
+                </h2>
+                <p className={styles.resultText}>
+                    {analysisResult 
+                        ? `분석 ID #${analysisResult.analysis_id}에 대한 처리가 완료되었습니다.` 
+                        : "입력받은 이미지의 흠집 유형을 분석한 결과를 나타내는 공간입니다."}
+                </p>
             </div>
 
-            {/* 임시 분석 버튼 (나중에 상세 분석 결과 영역으로 대체) */}
-            <button className={styles.uploadButton} disabled style={{ marginTop: '20px', maxWidth: '300px' }}>
-                분석 작업 완료됨 (Analysis Placeholder)
+            <button className={styles.pdfButton}>
+                📄 PDF 리포트 변환
             </button>
         </section>
     );
 };
 
-/**
- * 이미지 분석 페이지의 메인 레이아웃입니다.
- */
-function AnalysisPage({ projectData, imageUrl, fileName }) {
-    const { id: projectId, history } = projectData;
+// 메인 페이지 컴포넌트
+function AnalysisPage({ projectData, imageUrl, fileName, analysisResult }) {
+    const { id: projectId } = projectData;
 
-    // UploadPage의 레이아웃을 복사합니다.
     return (
-        <main className={styles.uploadPage} role="main"> 
+        <main className={styles.pageContainer} role="main"> 
             
-            {/* 1. 프로젝트 섹션 (ProjectImage) - UploadPage와 동일한 위치 */}
+            {/* 1. 상단 프로젝트 배너 */}
             <div className={styles.projectNameSection}>
                 <ProjectImage projectId={projectId} /> 
             </div>
             
-            {/* 2. 이미지 표시 영역 (UploadArea 대체) */}
-            <UploadedImageViewer imageUrl={imageUrl} fileName={fileName} />
-            
-            {/* 3. 분석 히스토리 섹션 - UploadPage와 동일하게 유지 */}
-            <section className={styles.historySection} style={{ marginTop: '50px' }}>
-                <h2 className={styles.historyTitle}>
-                    분석 히스토리 ({history.length}건)
-                </h2>
-                {/* ... (히스토리 항목 렌더링 로직은 생략) ... */}
-                <p>여기에 분석 결과 상세 내용이나 히스토리 목록이 표시될 예정입니다.</p>
-            </section>
+            {/* 2. 메인 컨텐츠 영역 (좌우 2열 구조) */}
+            <div className={styles.contentContainer}>
+                <ImageSection imageUrl={imageUrl} fileName={fileName} />
+                <ClassificationSection analysisResult={analysisResult} />
+            </div>
+
+            {/* 3. 하단 결과 섹션 */}
+            <ResultSection analysisResult={analysisResult} />
         </main>
     );
 }
