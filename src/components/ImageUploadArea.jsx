@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styles from '../pages/UploadPage.module.css';
 
 // API Configuration (App.jsx와 동일하게 설정)
@@ -38,7 +39,8 @@ const makeApiCallWithRetry = async (url, options, maxRetries = 3) => {
  * @param {string} props.projectId - /api/access에서 받은 프로젝트 ID
  * @param {function} props.fetchHistory - UploadPage에서 받은, 히스토리 목록을 갱신하는 함수 (추가됨)
  */
-function ImageUploadArea({ projectId, fetchHistory }) { // <-- fetchHistory prop 추가
+function ImageUploadArea({ projectId, fetchHistory, onUploadSuccess }) { 
+    const navigate = useNavigate();
     const fileInputRef = useRef(null);
     const [selectedFile, setSelectedFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -106,33 +108,44 @@ function ImageUploadArea({ projectId, fetchHistory }) { // <-- fetchHistory prop
         formData.append('project_id', projectId); // 필수: /api/access에서 받은 ID
 
         try {
-            const response = await makeApiCallWithRetry(apiUrl, {
-                method: 'POST',
-                // Content-Type: 'multipart/form-data'는 FormData를 사용할 때 자동으로 설정됨
-                body: formData, 
-            });
-            
-            // makeApiCallWithRetry에서 response.ok 체크 및 에러 처리를 담당
-            
-            if (response.result === 'success') {
-                // 성공 메시지 및 분석 ID 표시
-                setUploadStatus({ 
-                    type: 'success', 
-                    message: `업로드 성공! 분석 ID: ${response.analysis_id}. 분석 결과는 잠시 후 히스토리에 반영됩니다.` 
-                });
-                setSelectedFile(null); // 파일 선택 초기화
-                
-                // --- 핵심 수정: 히스토리 새로고침 함수 호출 ---
-                if (fetchHistory) {
-                    fetchHistory(); 
-                }
-                // ----------------------------------------
-                
-            } else {
-                 setUploadStatus({ type: 'error', message: `분석 요청 실패: ${response.message || '알 수 없는 응답'}` });
-            }
+            const response = await makeApiCallWithRetry(apiUrl, {
+                method: 'POST',
+                // Content-Type: 'multipart/form-data'는 FormData를 사용할 때 자동으로 설정됨
+                body: formData, 
+            });
+            
+            // makeApiCallWithRetry에서 response.ok 체크 및 에러 처리를 담당
+            
+            if (response.result === 'success') {
+                // 성공 메시지 및 분석 ID 표시
+                setUploadStatus({ 
+                    type: 'success', 
+                    message: `업로드 성공! 분석 ID: ${response.analysis_id}. 분석 결과는 잠시 후 히스토리에 반영됩니다.` 
+                });
+                
+                // --- 핵심 수정: 히스토리 새로고침 함수 호출 ---
+                if (fetchHistory) {
+                    fetchHistory(); 
+                }
 
-        } catch (e) {
+                // 🚨 Mock URL 생성 로직 제거 및 실제 URL 사용
+                const actualImageUrl = response.image_url; // ⭐️ 서버 응답에서 실제 이미지 URL을 가져옵니다. (백엔드와 필드명 확인 필요)
+                
+                if (onUploadSuccess) {
+                    // ⭐️ 실제 URL을 App.jsx로 전달
+                    onUploadSuccess(selectedFile, actualImageUrl); 
+                } else {
+                    // onUploadSuccess가 없을 경우, 이전처럼 navigate('/analysis')만 호출
+                    navigate('/analysis'); 
+                }
+                
+                setSelectedFile(null); // 파일 선택 초기화
+                
+            } else {
+                 setUploadStatus({ type: 'error', message: `분석 요청 실패: ${response.message || '알 수 없는 응답'}` });
+            }
+
+        } catch (e) {
             console.error('Image Upload Error:', e);
             setUploadStatus({ type: 'error', message: `API 요청 중 오류 발생: ${e.message}` });
         } finally {
