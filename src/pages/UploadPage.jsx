@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import ProjectImage from '../components/ProjectImage';
 import styles from './UploadPage.module.css';
 
-// [수정됨] 백엔드 주소 (api 프리픽스 제거)
+// 백엔드 주소 (api 프리픽스 제거)
 const BASE_URL = 'http://127.0.0.1:5000';
 
 const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInternalId }) => {
@@ -38,8 +38,7 @@ const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInterna
             const uploadData = await uploadRes.json();
             const analysisId = uploadData.analysis_id;
 
-            // 2. 결과 데이터 조회 요청 (/result/<id>) -> 여기서 실제 AI가 돕니다
-            // 백엔드 코드 get_result()에서 추론(inference)을 수행함
+            // 2. 결과 데이터 조회 요청 (/result/<id>) -> 여기서 실제 AI 추론 실행
             const resultRes = await fetch(`${BASE_URL}/result/${analysisId}`);
             if (!resultRes.ok) throw new Error('결과 조회 실패');
             
@@ -71,6 +70,7 @@ const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInterna
             <div className={styles.uploadPreview} style={{ maxWidth: '800px', marginTop: '30px' }}>
                 <h3 className={styles.historyTitle}>새 분석 요청</h3>
                 
+                {/* [수정] div onClick 제거, input이 전체 영역 커버 */}
                 <div style={{ width: '100%', padding: '40px', border: '2px dashed #cbd5e1', borderRadius: '12px', position: 'relative', marginBottom: '20px', display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px', backgroundColor: '#f8fafc' }}>
                     {preview ? (
                         <img src={preview} alt="Preview" style={{ maxHeight: '200px', maxWidth: '100%', objectFit: 'contain' }} />
