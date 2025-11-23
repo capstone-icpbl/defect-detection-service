@@ -35,15 +35,39 @@ const HistoryList = ({ history }) => {
             ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                     {validHistory.map((item, idx) => (
-                        <div key={idx} style={{ 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            padding: '15px', 
-                            border: '1px solid #eee', 
-                            borderRadius: '8px',
-                            backgroundColor: '#fff',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.03)'
-                        }}>
+                        <div 
+                            key={idx} 
+                            // ⭐️ 클릭 이벤트 강화 (버블링 방지 및 전달)
+                            onClick={(e) => {
+                                e.stopPropagation(); 
+                                if (onSelectHistory) onSelectHistory(item);
+                            }}
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                padding: '15px', 
+                                border: '1px solid #eee', 
+                                borderRadius: '8px',
+                                backgroundColor: '#fff',
+                                boxShadow: '0 2px 4px rgba(0,0,0,0.03)',
+                                cursor: 'pointer',
+                                transition: 'transform 0.2s, box-shadow 0.2s',
+                                // ⭐️ 가려짐 방지를 위한 스타일
+                                position: 'relative',
+                                zIndex: 10,
+                                userSelect: 'none'
+                            }}
+                            onMouseEnter={(e) => {
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                                e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.1)';
+                                e.currentTarget.style.borderColor = '#007bff';
+                            }}
+                            onMouseLeave={(e) => {
+                                e.currentTarget.style.transform = 'translateY(0)';
+                                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.03)';
+                                e.currentTarget.style.borderColor = '#eee';
+                            }}
+                        >
                             {/* 1. 실제 이미지 썸네일 표시 */}
                             <div style={{ 
                                 width: '60px', 
