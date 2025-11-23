@@ -53,6 +53,8 @@ class AnalysisResult(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=False)
     original_image_url = db.Column(db.String(255), nullable=False)
+    # ⭐️ [추가] 파일명 저장을 위한 컬럼
+    filename = db.Column(db.String(255), nullable=True)
     result_image_url = db.Column(db.String(255), nullable=True)
     analysis_data = db.Column(db.Text, nullable=True) 
     status = db.Column(db.String(50), nullable=False, default='processing')
@@ -62,7 +64,7 @@ class AnalysisResult(db.Model):
 # PDF 및 데이터 처리 헬퍼 함수
 # ==========================================
 
-# [설정] 클래스 한글 매핑 및 조치 DB
+# [설정] 클래스 한글 매핑
 CLASS_MAPPING = {
     "good": "정상 (Good)",
     "bent": "변형/찌그러짐 (Bent)",
@@ -72,7 +74,7 @@ CLASS_MAPPING = {
 }
 
 def draw_boxes_on_image_in_memory(image_url, detections):
-    """이미지 박스 그리기 (good 클래스는 초록색, 나머지는 빨간색)"""
+    """이미지 박스 그리기 (good=초록, bad=빨강)"""
     try:
         response = requests.get(image_url)
         response.raise_for_status()
@@ -95,7 +97,6 @@ def draw_boxes_on_image_in_memory(image_url, detections):
             label = CLASS_MAPPING.get(cls_key, cls_key)
             conf = det.get('confidence', 0)
             
-            # good은 초록색, 결함은 빨간색
             color = "green" if cls_key == "good" else "red"
 
             if bbox and len(bbox) == 4:
@@ -119,7 +120,6 @@ def generate_summary_text(detections):
     if not detections:
         return "분석 결과, 특이사항이 발견되지 않았습니다. 대상물의 상태가 매우 양호합니다."
 
-    # good을 제외한 실제 결함만 카운트
     defects_only = [d for d in detections if d.get('class') != 'good']
     count = len(defects_only)
     
@@ -142,39 +142,15 @@ def generate_summary_text(detections):
 def get_detailed_advice(defect_type):
     """결함별 상세 조치 가이드"""
     advice_db = {
-        "bent": (
-            "변형/찌그러짐 (Bent):\n"
-            "외부 충격이나 압력으로 인해 형태가 변형된 상태입니다. "
-            "금속 재질의 경우 PDR(Paintless Dent Repair) 시공을 우선 고려하고, "
-            "변형이 심하거나 도장 손상이 동반된 경우 판금/교체 작업이 필요할 수 있습니다."
-        ),
-        "color": (
-            "변색/이염 (Color):\n"
-            "자외선 노출, 화학 물질, 혹은 노후화로 인해 본래의 색상을 잃은 상태입니다. "
-            "표면 오염인 경우 광택(Polishing) 및 클리닝으로 복원이 가능하나, "
-            "페인트 층 자체의 변색인 경우 재도장 작업이 필요합니다."
-        ),
-        "crack": (
-            "균열/파손 (Crack):\n"
-            "재료의 피로도 누적이나 강한 충격으로 인해 표면이 갈라진 상태입니다. "
-            "방치 시 균열이 확산되어 구조적 안전에 영향을 줄 수 있으므로, "
-            "즉시 용접, 퍼티 작업 후 도색 또는 부품 교체를 강력히 권장합니다."
-        ),
-        "scratch": (
-            "스크래치 (Scratch):\n"
-            "표면 마찰로 인해 긁힘이 발생한 상태입니다. "
-            "손톱에 걸리지 않는 미세 스크래치는 광택 작업으로 제거 가능하며, "
-            "깊은 스크래치는 부식 방지를 위해 터치업 페인트나 부분 도색이 요구됩니다."
-        ),
-        "good": (
-            "정상 (Good):\n"
-            "해당 영역은 AI 분석 결과 결함이 없는 양호한 상태로 판단됩니다. "
-            "별도의 조치가 필요하지 않으며, 현 상태를 유지하기 위한 주기적인 관리를 권장합니다."
-        )
+        "bent": "변형/찌그러짐 (Bent):\n외부 충격으로 형태가 변형되었습니다. PDR 시공 또는 판금 작업을 고려하세요.",
+        "color": "변색/이염 (Color):\n자외선/화학물질로 인한 변색입니다. 광택(Polishing) 또는 재도장이 필요할 수 있습니다.",
+        "crack": "균열/파손 (Crack):\n충격으로 표면이 갈라졌습니다. 안전을 위해 용접, 교체 등 즉각적인 조치가 권장됩니다.",
+        "scratch": "스크래치 (Scratch):\n표면 긁힘이 발생했습니다. 얕은 흠집은 광택 작업으로, 깊은 흠집은 도색이 필요합니다.",
+        "good": "정상 (Good):\nAI 분석 결과 해당 영역은 양호합니다. 주기적인 관리만 필요합니다."
     }
     return advice_db.get(defect_type, "해당 결함 유형에 대해 전문가의 육안 정밀 진단이 필요합니다.")
 
-# --- 기존 헬퍼 함수 ---
+# --- 헬퍼 함수 ---
 def make_history_list(results):
     history_data = []
     for r in results:
@@ -183,15 +159,16 @@ def make_history_list(results):
         except:
             parsed_data = []
             
-        # good 제외하고 결함 수 세기
         real_defects = [d for d in parsed_data if d.get('class') != 'good']
         defect_count = len(real_defects)
         
         kst_time = r.created_at + timedelta(hours=9)
         
         history_data.append({
-            "id": r.id,
+            "analysis_id": r.id,
             "image_url": r.original_image_url,
+            # ⭐️ [추가] 파일명 반환 (없으면 기본값)
+            "filename": r.filename or f"Image_{r.id}",
             "status": r.status,
             "summary": f"결함 {defect_count}개 발견",
             "date": kst_time.strftime("%Y-%m-%d %H:%M")
@@ -204,7 +181,7 @@ def make_history_list(results):
 
 @app.route('/')
 def index():
-    return "AI 서버 가동 중 (Final Version)"
+    return "AI 서버 가동 중 (Filename Feature Added)"
 
 # 1. 접속 (Login)
 @app.route('/access', methods=['POST', 'OPTIONS'])
@@ -258,13 +235,19 @@ def predict():
         if not project_id: return jsonify({"result": "error", "message": "ID 누락"}), 400
         
         file = request.files['image']
-        filename = secure_filename(file.filename)
         
-        s3.upload_fileobj(file, S3_BUCKET_NAME, filename, ExtraArgs={'ACL': 'public-read', 'ContentType': file.content_type})
-        image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{filename}"
+        # ⭐️ [추가] 원본 파일명 저장 로직
+        original_filename = file.filename
+        safe_filename = secure_filename(original_filename)
+        
+        s3.upload_fileobj(file, S3_BUCKET_NAME, safe_filename, ExtraArgs={'ACL': 'public-read', 'ContentType': file.content_type})
+        image_url = f"https://{S3_BUCKET_NAME}.s3.{S3_REGION}.amazonaws.com/{safe_filename}"
         
         new_analysis = AnalysisResult(
-            original_image_url=image_url, status='processing', project_id=int(project_id)
+            original_image_url=image_url, 
+            filename=original_filename, # ⭐️ DB에 저장
+            status='processing', 
+            project_id=int(project_id)
         )
         db.session.add(new_analysis)
         db.session.commit()
@@ -282,28 +265,33 @@ def get_result(analysis_id):
         result = db.session.get(AnalysisResult, analysis_id)
         if not result: return jsonify({"message": "데이터 없음"}), 404
 
+        # ⭐️ [추가] 응답 데이터에 filename 포함
+        response_data = {
+            "analysis_id": result.id, 
+            "status": "completed", 
+            "original_image_url": result.original_image_url, 
+            "filename": result.filename, # 파일명
+            "details": []
+        }
+
         if result.status == 'completed':
-            return jsonify({
-                "analysis_id": result.id, "status": "completed", 
-                "original_image_url": result.original_image_url, 
-                "details": json.loads(result.analysis_data)
-            })
+            response_data["details"] = json.loads(result.analysis_data)
+            return jsonify(response_data)
         
         raw_json = inference.run_inference(result.original_image_url)
         result.analysis_data = raw_json
         result.status = 'completed'
         db.session.commit()
 
-        return jsonify({
-            "analysis_id": result.id, "status": "completed", 
-            "original_image_url": result.original_image_url, "details": json.loads(raw_json)
-        })
+        response_data["details"] = json.loads(raw_json)
+        return jsonify(response_data)
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"status": "processing", "error": str(e)})
 
 
-# 4. 리포트 (최종 버전: 5개 클래스 적용)
+# 4. 리포트 (B2B + 5개 클래스 + KST 시간 + 폰트 해결 버전)
 @app.route('/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
@@ -346,7 +334,7 @@ def get_report(analysis_id):
         pdf.set_font(base_font, '', 11)
         pdf.set_text_color(0)
         
-        # 등급 판정 로직 (good은 결함 수에서 제외)
+        # 등급 판정 (good 제외)
         real_defects = [d for d in analysis_details if d.get('class') != 'good']
         defect_count = len(real_defects)
         
@@ -364,6 +352,10 @@ def get_report(analysis_id):
         pdf.cell(60, 8, f"REP-{result.project.access_code}-{analysis_id}", align='L')
         pdf.cell(30, 8, "검사 일시:", align='L')
         pdf.cell(0, 8, f"{kst_str} (KST)", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        
+        # ⭐️ [추가] 리포트에도 파일명 표시
+        pdf.cell(30, 8, "파일명:", align='L')
+        pdf.cell(60, 8, f"{result.filename or '-'}", align='L')
         
         pdf.cell(30, 8, "최종 등급:", align='L')
         pdf.set_text_color(*grade_color)
@@ -417,16 +409,13 @@ def get_report(analysis_id):
         else:
             for i, item in enumerate(analysis_details):
                 cls_key = item.get('class', 'unknown')
-                
-                # good은 결함 가이드에 넣을지 말지 결정 (여기서는 넣음)
                 unique_defects.add(cls_key)
                 
-                cls_name = CLASS_MAPPING.get(cls_key, cls_key) # 한글 변환
+                cls_name = CLASS_MAPPING.get(cls_key, cls_key)
                 conf = float(item.get('confidence', 0)) * 100
                 bbox = item.get('bbox', [0,0,0,0])
                 bbox_str = f"[{int(bbox[0])},{int(bbox[1])}]"
                 
-                # 간편 조치 (표 내부용)
                 action = "관찰 필요"
                 if cls_key == "scratch": action = "광택 작업"
                 elif cls_key == "dent": action = "PDR/판금"
@@ -443,12 +432,10 @@ def get_report(analysis_id):
         
         pdf.ln(5)
 
-        # [4] 상세 가이드 (unique_defects 기반)
-        # good만 있을 때는 굳이 가이드가 길게 필요 없을 수 있으나, 칭찬 문구로 넣음
+        # [4] 상세 가이드
         if unique_defects:
             pdf.set_font(bold_font, 'B', 14)
             pdf.cell(0, 10, '3. 유형별 상세 가이드', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
-            
             pdf.set_font(base_font, '', 10)
             
             for defect in unique_defects:
