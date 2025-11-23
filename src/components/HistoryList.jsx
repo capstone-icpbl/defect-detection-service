@@ -1,13 +1,13 @@
 import React from 'react';
+// 스타일 파일 경로 재확인: src/components -> src/pages/UploadPage.module.css
 import styles from '../pages/UploadPage.module.css';
 
 const HistoryList = ({ history }) => {
     // 1. 배열 안전성 확보
     const rawHistory = Array.isArray(history) ? history : [];
 
-    // 2. 조건 완화: ID가 없어도 일단 이미지가 있으면 표시 시도 (디버깅용)
-    // 실제 운영시에는 id 체크를 하는 게 좋지만, 지금은 데이터가 뜨는지 확인이 우선입니다.
-    const validHistory = rawHistory; 
+    // 2. 강력 필터링: analysis_id가 있는 항목만 표시
+    const validHistory = rawHistory.filter(item => item.analysis_id);
 
     const formatDate = (timestamp) => {
         if (!timestamp) return '-';
@@ -67,7 +67,7 @@ const HistoryList = ({ history }) => {
 
                             <div style={{ flex: 1 }}>
                                 <div style={{ fontWeight: 'bold', fontSize: '16px', marginBottom: '4px', color: '#333' }}>
-                                    분석 ID #{item.analysis_id || item.id || 'New'}
+                                    분석 ID #{item.analysis_id}
                                 </div>
                                 <div style={{ fontSize: '12px', color: '#666' }}>
                                     {formatDate(item.timestamp)}
