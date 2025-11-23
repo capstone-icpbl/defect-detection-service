@@ -1,5 +1,4 @@
 import * as React from "react";
-// 스타일 파일이 이제 같은 폴더에 있으므로 ./로 변경
 import styles from "../pages/InputDesign.module.css";
 
 function AnalysisResults({ result }) {
