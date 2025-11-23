@@ -8,10 +8,10 @@ from werkzeug.utils import secure_filename
 from fpdf import FPDF, XPos, YPos
 import io 
 import json 
-import requests # [추가] 이미지 다운로드용
-from PIL import Image, ImageDraw, ImageFont # [추가] 이미지 처리용
+import requests 
+from PIL import Image, ImageDraw, ImageFont 
 import inference 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 load_dotenv()
 
@@ -21,8 +21,6 @@ CORS(app)
 # --- 데이터베이스 및 S3 설정 ---
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DB_URI') 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-
-# DB 에러 났을 때 자동 복구 설정
 app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     "pool_pre_ping": True,
     "pool_recycle": 300,
@@ -61,11 +59,20 @@ class AnalysisResult(db.Model):
     created_at = db.Column(db.DateTime, server_default=db.func.now())
 
 # ==========================================
-# [NEW] PDF 생성용 헬퍼 함수
+# PDF 및 데이터 처리 헬퍼 함수
 # ==========================================
 
+# [설정] 클래스 한글 매핑 및 조치 DB
+CLASS_MAPPING = {
+    "good": "정상 (Good)",
+    "bent": "변형/찌그러짐 (Bent)",
+    "color": "변색/이염 (Color)",
+    "crack": "균열/파손 (Crack)",
+    "scratch": "스크래치 (Scratch)"
+}
+
 def draw_boxes_on_image_in_memory(image_url, detections):
-    """이미지를 메모리에서 다운받아 박스를 그리고 스트림 반환 (S3 저장 안함)"""
+    """이미지 박스 그리기 (good 클래스는 초록색, 나머지는 빨간색)"""
     try:
         response = requests.get(image_url)
         response.raise_for_status()
@@ -75,71 +82,99 @@ def draw_boxes_on_image_in_memory(image_url, detections):
             img = img.convert('RGB')
             
         draw = ImageDraw.Draw(img)
-        # 이미지 크기에 비례하여 선 두께 설정
         line_width = max(3, int(img.width / 200))
         
         try:
-            # 폰트가 없으면 기본 폰트 사용 (한글 깨질 수 있음 -> 영문 라벨 권장)
             font = ImageFont.load_default()
         except:
             font = None
 
         for det in detections:
-            bbox = det.get('bbox') # [x1, y1, x2, y2]
-            label = det.get('class', 'Unknown')
+            bbox = det.get('bbox')
+            cls_key = det.get('class', 'unknown')
+            label = CLASS_MAPPING.get(cls_key, cls_key)
             conf = det.get('confidence', 0)
             
+            # good은 초록색, 결함은 빨간색
+            color = "green" if cls_key == "good" else "red"
+
             if bbox and len(bbox) == 4:
-                # 1. 빨간 박스
-                draw.rectangle(bbox, outline="red", width=line_width)
+                draw.rectangle(bbox, outline=color, width=line_width)
                 
-                # 2. 텍스트 라벨 (선택 사항)
-                text_caption = f"{label} {conf:.0%}"
-                
-                # 텍스트 배경 박스 (가독성 확보)
+                text_caption = f"{label}"
                 if hasattr(draw, "textbbox"):
                     text_bg = draw.textbbox((bbox[0], bbox[1] - 15), text_caption, font=font)
-                    draw.rectangle(text_bg, fill="red")
-                
+                    draw.rectangle(text_bg, fill=color)
                 draw.text((bbox[0], bbox[1] - 15), text_caption, fill="white", font=font)
 
         output_stream = io.BytesIO()
         img.save(output_stream, format='JPEG', quality=90)
         return output_stream
-        
     except Exception as e:
-        print(f"이미지 처리 중 에러: {e}")
+        print(f"이미지 처리 에러: {e}")
         return None
 
 def generate_summary_text(detections):
-    """결함 데이터를 분석하여 줄글 요약 생성"""
+    """결함 요약 텍스트 생성"""
     if not detections:
-        return "정밀 분석 결과, 특이사항이나 결함이 발견되지 않았습니다. 차량 표면 상태가 매우 양호합니다."
+        return "분석 결과, 특이사항이 발견되지 않았습니다. 대상물의 상태가 매우 양호합니다."
 
-    count = len(detections)
-    types = [d.get('class', 'Unknown') for d in detections]
+    # good을 제외한 실제 결함만 카운트
+    defects_only = [d for d in detections if d.get('class') != 'good']
+    count = len(defects_only)
+    
+    types = [d.get('class', 'unknown') for d in defects_only]
     type_counts = {t: types.count(t) for t in set(types)}
     
-    summary = f"AI 비전 분석 결과, 총 {count}건의 결함이 탐지되었습니다. "
+    if count == 0:
+        return "분석 결과, '정상(Good)' 영역만 탐지되었습니다. 결함이 발견되지 않아 상태가 양호합니다."
+
+    summary = f"AI 정밀 분석 결과, 총 {count}건의 결함이 식별되었습니다. "
     
     detail_texts = []
     for dtype, dcount in type_counts.items():
-        korean_name = {"Scratch": "스크래치", "Dent": "찌그러짐", "Paint Chip": "도장 까짐"}.get(dtype, dtype)
-        detail_texts.append(f"{korean_name} {dcount}건")
+        k_name = CLASS_MAPPING.get(dtype, dtype)
+        detail_texts.append(f"{k_name} {dcount}건")
     
-    summary += ", ".join(detail_texts) + "이(가) 식별되었습니다.\n\n"
-    summary += "[권장 조치]\n"
-    
-    if "Scratch" in type_counts:
-        summary += "- 스크래치: 깊이에 따른 광택(Polishing) 작업 요망\n"
-    if "Dent" in type_counts:
-        summary += "- 찌그러짐: PDR 시공 또는 판금 도색 검토 필요\n"
-    if "Paint Chip" in type_counts:
-        summary += "- 도장 까짐: 부식 방지를 위한 터치업 페인트 시공 필요\n"
-        
+    summary += ", ".join(detail_texts) + "이(가) 확인되었습니다."
     return summary
 
-# --- 기존 헬퍼 함수 (수정됨) ---
+def get_detailed_advice(defect_type):
+    """결함별 상세 조치 가이드"""
+    advice_db = {
+        "bent": (
+            "변형/찌그러짐 (Bent):\n"
+            "외부 충격이나 압력으로 인해 형태가 변형된 상태입니다. "
+            "금속 재질의 경우 PDR(Paintless Dent Repair) 시공을 우선 고려하고, "
+            "변형이 심하거나 도장 손상이 동반된 경우 판금/교체 작업이 필요할 수 있습니다."
+        ),
+        "color": (
+            "변색/이염 (Color):\n"
+            "자외선 노출, 화학 물질, 혹은 노후화로 인해 본래의 색상을 잃은 상태입니다. "
+            "표면 오염인 경우 광택(Polishing) 및 클리닝으로 복원이 가능하나, "
+            "페인트 층 자체의 변색인 경우 재도장 작업이 필요합니다."
+        ),
+        "crack": (
+            "균열/파손 (Crack):\n"
+            "재료의 피로도 누적이나 강한 충격으로 인해 표면이 갈라진 상태입니다. "
+            "방치 시 균열이 확산되어 구조적 안전에 영향을 줄 수 있으므로, "
+            "즉시 용접, 퍼티 작업 후 도색 또는 부품 교체를 강력히 권장합니다."
+        ),
+        "scratch": (
+            "스크래치 (Scratch):\n"
+            "표면 마찰로 인해 긁힘이 발생한 상태입니다. "
+            "손톱에 걸리지 않는 미세 스크래치는 광택 작업으로 제거 가능하며, "
+            "깊은 스크래치는 부식 방지를 위해 터치업 페인트나 부분 도색이 요구됩니다."
+        ),
+        "good": (
+            "정상 (Good):\n"
+            "해당 영역은 AI 분석 결과 결함이 없는 양호한 상태로 판단됩니다. "
+            "별도의 조치가 필요하지 않으며, 현 상태를 유지하기 위한 주기적인 관리를 권장합니다."
+        )
+    }
+    return advice_db.get(defect_type, "해당 결함 유형에 대해 전문가의 육안 정밀 진단이 필요합니다.")
+
+# --- 기존 헬퍼 함수 ---
 def make_history_list(results):
     history_data = []
     for r in results:
@@ -148,15 +183,18 @@ def make_history_list(results):
         except:
             parsed_data = []
             
-        defect_count = len(parsed_data) if isinstance(parsed_data, list) else 0
-        summary_text = f"결함 {defect_count}개 발견"
-
+        # good 제외하고 결함 수 세기
+        real_defects = [d for d in parsed_data if d.get('class') != 'good']
+        defect_count = len(real_defects)
+        
+        kst_time = r.created_at + timedelta(hours=9)
+        
         history_data.append({
-            "analysis_id": r.id,  # ⭐️ [수정] id -> analysis_id 로 키 이름 변경 (프론트엔드와 통일)
+            "id": r.id,
             "image_url": r.original_image_url,
             "status": r.status,
-            "summary": summary_text,
-            "date": r.created_at.strftime("%Y-%m-%d %H:%M")
+            "summary": f"결함 {defect_count}개 발견",
+            "date": kst_time.strftime("%Y-%m-%d %H:%M")
         })
     return history_data
 
@@ -166,7 +204,7 @@ def make_history_list(results):
 
 @app.route('/')
 def index():
-    return "AI 서버 가동 중 (Updated Report)"
+    return "AI 서버 가동 중 (Final Version)"
 
 # 1. 접속 (Login)
 @app.route('/access', methods=['POST', 'OPTIONS'])
@@ -176,7 +214,7 @@ def access_project():
         data = request.get_json()
         if not data: return jsonify({"result": "error", "message": "데이터 없음"}), 400
         access_code = data.get('access_code')
-        if not access_code: return jsonify({"result": "error", "message": "접속 코드 입력 필요"}), 400
+        if not access_code: return jsonify({"result": "error", "message": "코드 입력 필요"}), 400
         
         project = Project.query.filter_by(access_code=access_code).first()
         if not project:
@@ -188,7 +226,7 @@ def access_project():
         history_data = make_history_list(results)
 
         return jsonify({
-            "result": "success", "message": "접속 성공",
+            "result": "success", 
             "project_id": project.id, "access_code": project.access_code, "history": history_data
         })
     except Exception as e:
@@ -203,9 +241,7 @@ def get_history():
         data = request.get_json()
         project_id = data.get('project_id')
         if isinstance(project_id, str) and project_id.isdigit(): project_id = int(project_id)
-        if not project_id or not isinstance(project_id, int):
-            return jsonify({"result": "error", "message": "유효하지 않은 ID"}), 400
-
+        
         results = AnalysisResult.query.filter_by(project_id=project_id).order_by(AnalysisResult.created_at.desc()).all()
         return jsonify({"result": "success", "history": make_history_list(results)})
     except Exception as e:
@@ -220,7 +256,6 @@ def predict():
     try:
         project_id = request.form.get('project_id')
         if not project_id: return jsonify({"result": "error", "message": "ID 누락"}), 400
-        if not str(project_id).isdigit(): return jsonify({"result": "error", "message": "ID는 숫자여야 함"}), 400
         
         file = request.files['image']
         filename = secure_filename(file.filename)
@@ -268,7 +303,7 @@ def get_result(analysis_id):
         return jsonify({"status": "processing", "error": str(e)})
 
 
-# 4. 리포트 
+# 4. 리포트 (최종 버전: 5개 클래스 적용)
 @app.route('/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
@@ -278,7 +313,9 @@ def get_report(analysis_id):
     try:
         analysis_details = json.loads(result.analysis_data)
         
-        # 페이지 번호 출력을 위한 커스텀 클래스
+        kst_time = result.created_at + timedelta(hours=9)
+        kst_str = kst_time.strftime('%Y-%m-%d %H:%M:%S')
+
         class ReportPDF(FPDF):
             def footer(self):
                 self.set_y(-15)
@@ -293,7 +330,6 @@ def get_report(analysis_id):
         pdf = ReportPDF()
         pdf.add_page()
         
-        # 폰트 로드
         try:
             pdf.add_font('Nanum', '', 'NanumGothic.ttf')
             pdf.add_font('NanumB', 'B', 'NanumGothic.ttf')
@@ -303,117 +339,132 @@ def get_report(analysis_id):
             base_font = 'Helvetica'
             bold_font = 'Helvetica'
 
-        # ------------------------------------------------
-        # [1] 헤더 및 문서 정보
-        # ------------------------------------------------
+        # [1] 헤더
         pdf.set_font(bold_font, 'B', 20)
         pdf.cell(0, 15, '품질 검사 결과 보고서', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
         
         pdf.set_font(base_font, '', 11)
         pdf.set_text_color(0)
         
-        # 등급 판정 로직 (개수에 따라 등급 자동 부여)
-        defect_count = len(analysis_details)
+        # 등급 판정 로직 (good은 결함 수에서 제외)
+        real_defects = [d for d in analysis_details if d.get('class') != 'good']
+        defect_count = len(real_defects)
+        
         if defect_count == 0:
             grade = "PASS (정상)"
-            grade_color = (0, 150, 0) # Green
+            grade_color = (0, 150, 0)
         elif defect_count <= 2:
             grade = "WARNING (주의)"
-            grade_color = (255, 140, 0) # Orange
+            grade_color = (255, 140, 0)
         else:
             grade = "FAIL (불량)"
-            grade_color = (200, 0, 0) # Red
+            grade_color = (200, 0, 0)
 
-        # 문서 정보 출력
         pdf.cell(30, 8, "문서 번호:", align='L')
         pdf.cell(60, 8, f"REP-{result.project.access_code}-{analysis_id}", align='L')
         pdf.cell(30, 8, "검사 일시:", align='L')
-        pdf.cell(0, 8, result.created_at.strftime('%Y-%m-%d %H:%M'), new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
+        pdf.cell(0, 8, f"{kst_str} (KST)", new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
         
         pdf.cell(30, 8, "최종 등급:", align='L')
-        pdf.set_text_color(*grade_color) # 등급 색상 적용
+        pdf.set_text_color(*grade_color)
         pdf.set_font(bold_font, 'B', 12)
         pdf.cell(0, 8, grade, new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='L')
         
-        pdf.set_text_color(0) # 색상 초기화
+        pdf.set_text_color(0)
         pdf.set_font(base_font, '', 11)
-        pdf.set_line_width(0.5)
-        pdf.line(10, pdf.get_y()+2, 200, pdf.get_y()+2) # 구분선
+        pdf.line(10, pdf.get_y()+2, 200, pdf.get_y()+2)
         pdf.ln(8)
 
-        # ------------------------------------------------
-        # [2] 시각적 분석 (박스 이미지)
-        # ------------------------------------------------
+        # [2] 시각적 분석
         pdf.set_font(bold_font, 'B', 14)
         pdf.cell(0, 10, '1. 결함 시각화 (Visual Inspection)', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         processed_img_stream = draw_boxes_on_image_in_memory(result.original_image_url, analysis_details)
         if processed_img_stream:
-            # 이미지 중앙 정렬 (A4 너비 210mm, 여백 고려하여 150mm 너비로 설정)
             pdf.image(processed_img_stream, x=30, y=None, w=150)
         else:
             pdf.cell(0, 20, "[이미지 처리 실패]", align='C')
         pdf.ln(5)
 
-        # ------------------------------------------------
-        # [3] 종합 의견 및 상세 내역
-        # ------------------------------------------------
+        # [3] 상세 분석 결과
         pdf.set_font(bold_font, 'B', 14)
         pdf.cell(0, 10, '2. 상세 분석 결과', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
-        # 3-1. 줄글 요약 박스
         pdf.set_font(base_font, '', 11)
-        pdf.set_fill_color(245, 245, 245) # 연회색 배경
+        pdf.set_fill_color(245, 245, 245)
         summary_text = generate_summary_text(analysis_details)
         pdf.multi_cell(0, 8, summary_text, fill=True, border=0)
         pdf.ln(5)
 
-        # 3-2. 상세 테이블
+        # 테이블
         pdf.set_font(base_font, '', 10)
-        pdf.set_fill_color(60, 60, 60) # 헤더: 진한 회색
-        pdf.set_text_color(255) # 헤더: 흰색 글씨
+        pdf.set_fill_color(60, 60, 60)
+        pdf.set_text_color(255)
         
-        # 테이블 헤더
         pdf.cell(15, 8, "No.", border=1, align='C', fill=True)
         pdf.cell(40, 8, "결함 유형", border=1, align='C', fill=True)
         pdf.cell(25, 8, "신뢰도", border=1, align='C', fill=True)
-        pdf.cell(60, 8, "위치 좌표 (BBox)", border=1, align='C', fill=True)
-        pdf.cell(50, 8, "비고 (조치)", border=1, align='C', fill=True)
+        pdf.cell(50, 8, "위치 좌표", border=1, align='C', fill=True)
+        pdf.cell(60, 8, "간편 조치", border=1, align='C', fill=True)
         pdf.ln()
 
-        # 테이블 내용
-        pdf.set_text_color(0) # 내용: 검은 글씨
+        pdf.set_text_color(0)
+        
+        unique_defects = set()
+
         if not analysis_details:
-            pdf.cell(190, 10, "발견된 결함이 없습니다.", border=1, align='C')
+            pdf.cell(190, 10, "탐지된 데이터가 없습니다.", border=1, align='C')
         else:
             for i, item in enumerate(analysis_details):
-                cls_name = item.get('class', '-')
+                cls_key = item.get('class', 'unknown')
+                
+                # good은 결함 가이드에 넣을지 말지 결정 (여기서는 넣음)
+                unique_defects.add(cls_key)
+                
+                cls_name = CLASS_MAPPING.get(cls_key, cls_key) # 한글 변환
                 conf = float(item.get('confidence', 0)) * 100
                 bbox = item.get('bbox', [0,0,0,0])
-                bbox_str = f"[{int(bbox[0])},{int(bbox[1])},{int(bbox[2])},{int(bbox[3])}]" if len(bbox)==4 else "-"
+                bbox_str = f"[{int(bbox[0])},{int(bbox[1])}]"
                 
-                # 조치 사항 매핑
-                action = "관찰"
-                if cls_name == "Scratch": action = "광택 필요"
-                elif cls_name == "Dent": action = "판금/PDR"
-                elif cls_name == "Paint Chip": action = "도색 요망"
+                # 간편 조치 (표 내부용)
+                action = "관찰 필요"
+                if cls_key == "scratch": action = "광택 작업"
+                elif cls_key == "dent": action = "PDR/판금"
+                elif cls_key == "crack": action = "교체/용접"
+                elif cls_key == "color": action = "재도장"
+                elif cls_key == "good": action = "조치 없음"
 
                 pdf.cell(15, 8, str(i+1), border=1, align='C')
                 pdf.cell(40, 8, cls_name, border=1, align='C')
                 pdf.cell(25, 8, f"{conf:.1f}%", border=1, align='C')
-                pdf.cell(60, 8, bbox_str, border=1, align='C')
-                pdf.cell(50, 8, action, border=1, align='C')
+                pdf.cell(50, 8, bbox_str, border=1, align='C')
+                pdf.cell(60, 8, action, border=1, align='C')
                 pdf.ln()
+        
+        pdf.ln(5)
 
-        # [하단 면책 조항 - 간단하게]
+        # [4] 상세 가이드 (unique_defects 기반)
+        # good만 있을 때는 굳이 가이드가 길게 필요 없을 수 있으나, 칭찬 문구로 넣음
+        if unique_defects:
+            pdf.set_font(bold_font, 'B', 14)
+            pdf.cell(0, 10, '3. 유형별 상세 가이드', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+            
+            pdf.set_font(base_font, '', 10)
+            
+            for defect in unique_defects:
+                advice = get_detailed_advice(defect)
+                pdf.set_fill_color(250, 250, 250)
+                pdf.multi_cell(0, 6, advice, fill=True, border='L')
+                pdf.ln(2)
+
         pdf.set_y(-25)
         pdf.set_font(base_font, '', 9)
         pdf.set_text_color(100)
         pdf.multi_cell(0, 5, "※ 본 보고서는 AI 분석 결과로, 실제 육안 검사 결과와 차이가 있을 수 있습니다.", align='C')
 
-        # PDF 반환
-        pdf_bytes = pdf.output()  # 옵션 없이 호출하면 bytearray 반환
+        pdf_bytes = pdf.output() 
         response = make_response(bytes(pdf_bytes))
+        
         response.headers['Content-Type'] = 'application/pdf'
         response.headers['Content-Disposition'] = f'attachment; filename=Report_{analysis_id}.pdf'
         return response
@@ -421,7 +472,6 @@ def get_report(analysis_id):
     except Exception as e:
         print(f"Report Error: {e}")
         return jsonify({"error": str(e)}), 500
-
 
 # --- DB 초기화 ---
 with app.app_context():
