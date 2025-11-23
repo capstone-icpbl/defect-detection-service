@@ -7,92 +7,111 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 // --- 기존 컴포넌트 임포트
 import LandingPage from './pages/LandingPage';
 import UploadPage from './pages/UploadPage';
+import AnalysisPage from './pages/AnalysisPage';
 
-// 💡 UploadPage에 전달할 목업(Mock-up) 프로젝트 데이터
-const MOCK_PROJECT_DATA = {
-    id: 'ABCDEFGHIJ',
-    history: [
-        { analysis_id: 'ANA001', status: 'completed', timestamp: 1732387200000, result_summary: '우측 앞 범퍼 미세 흠집 감지', image_url: '/images/mock_car_1.jpg' },
-        { analysis_id: 'ANA002', status: 'pending', timestamp: 1732386000000, result_summary: '분석 요청 접수됨', image_url: '/images/mock_car_2.jpg' },
-        { analysis_id: 'ANA003', status: 'error', timestamp: 1732385000000, result_summary: '이미지 파일 손상', image_url: '/images/mock_car_3.jpg' },
-    ]
-};
 
-// 💡 목업 히스토리 갱신 함수
-const mockFetchHistory = () => {
-    console.log("History refresh requested.");
-};
-
-// ⭐️ AppContent 컴포넌트: 라우팅 환경 내에서 상태 및 로직 관리
+// AppContent 컴포넌트: 라우팅 환경 내에서 상태 및 로직 관리
 function AppContent() {
-    const navigate = useNavigate(); // 라우팅을 위한 훅
-    
-    // 상태 관리
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [projectData, setProjectData] = useState(MOCK_PROJECT_DATA);
+    
+    // ⭐️ 2. projectData와 projectInternalId 상태 유지
+    const [projectData, setProjectData] = useState({ id: null, history: [] });
+    const [projectInternalId, setProjectInternalId] = useState(null); 
+    
+    const [uploadedImageUrl, setUploadedImageUrl] = useState(null); 
+    const [uploadedFileName, setUploadedFileName] = useState(null); 
+    
+    // API URL 설정 (필요하다면 유지)
+    const BASE_URL = 'http://127.0.0.1:5000'; 
+    
+    // ⭐️ 3. 실제 히스토리 불러오기 함수 정의 (UploadPage에 전달)
+    // 이 함수는 서버에서 실제 히스토리 목록을 다시 가져와 projectData를 갱신합니다.
+    const fetchHistory = async (internalId) => {
+        if (!internalId) return;
 
-    // ⭐️ 접속 코드 제출 핸들러 구현 (접속 성공 시 페이지 전환)
+        try {
+            const response = await fetch(`${BASE_URL}/api/history?project_id=${internalId}`);
+            if (!response.ok) throw new Error('히스토리 로딩 실패');
+            
+            const data = await response.json();
+            
+            if (data.result === 'success') {
+                // 기존 projectData의 id는 유지하고 history만 업데이트
+                setProjectData(prev => ({ ...prev, history: data.history || [] }));
+            } else {
+                 console.error("Failed to fetch history:", data.message);
+            }
+        } catch (e) {
+            console.error('Error fetching history:', e);
+        }
+    };
+
+    // 접속 코드 제출 핸들러 구현 (접속 성공 시 페이지 전환)
     const handleAccessSubmit = async (code) => {
         setIsLoading(true);
         setError(null);
         
-        // 2초 딜레이를 통해 API 호출을 시뮬레이션
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
         try {
-            // 💡 실제로는 여기서 서버 API를 호출하여 코드를 검증해야 합니다.
-            // 개발 편의를 위해 'FAIL' 코드는 실패, 그 외는 성공으로 임시 설정합니다.
-            if (code.toUpperCase() === 'FAIL') {
-                throw new Error('유효하지 않은 접속 코드입니다. 다시 확인해 주세요.');
+            const apiUrl = `${BASE_URL}/api/access`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ project_code: code }), 
+            });
+
+            if (!response.ok) {
+                 const errorBody = await response.json().catch(() => ({ message: '서버 오류' }));
+                 throw new Error(`접속 실패: ${errorBody.message || '알 수 없는 오류'}`);
             }
             
-            console.log("Access successful! Navigating to Upload Page.");
-            
-            // 1. 성공 시 프로젝트 데이터를 설정합니다. (현재는 목업 데이터 사용)
-            setProjectData(MOCK_PROJECT_DATA); 
-            
-            // 2. UploadPage로 페이지 전환 (라우팅)
-            navigate('/upload');
+            const data = await response.json();
+
+            if (data.result === 'success') {
+                console.log("Access successful! Project ID:", data.project_id);
+                
+                // ⭐️ 실제 서버에서 받은 데이터 사용
+                setProjectData({ id: code, history: data.history || [] }); // 외부 ID는 입력 코드 사용
+                setProjectInternalId(data.internal_id); // ⭐️ 서버가 준 숫자 ID 저장
+                
+                navigate('/upload');
+            } else {
+                throw new Error(data.message || '유효하지 않은 프로젝트 코드입니다.');
+            }
 
         } catch (err) {
+            console.error('접속 오류:', err);
             setError(err.message);
         } finally {
             setIsLoading(false);
         }
     };
 
+// ⭐️ 5. UploadPage에 실제 fetchHistory 전달
   return (
     <div className="container">
-      {/* Header는 모든 경로에 공통적으로 표시됩니다. */}
       <Header />
       
       <Routes>
-        {/* 1. 랜딩 페이지 (접속 코드 입력) */}
-        <Route path="/" element={
-            <LandingPage 
-                onAccessSubmit={handleAccessSubmit} 
-                isLoading={isLoading} 
-                error={error}
-            />
-        } />
-        {/* 2. 업로드 페이지 (접속 성공 시 전환되는 경로) */}
         <Route path="/upload" element={
             <UploadPage 
                 projectData={projectData} 
-                fetchHistory={mockFetchHistory} 
+                fetchHistory={() => fetchHistory(projectInternalId)} // ⭐️ 실제 함수 전달
+                onUploadSuccess={handleUploadSuccess} 
+                projectInternalId={projectInternalId}
+            />
+        } />
+        {/* AnalysisPage에 업로드된 이미지 정보 전달 */}
+        <Route path="/analysis" element={
+            <AnalysisPage 
+                projectData={projectData} 
+                imageUrl={uploadedImageUrl}
+                fileName={uploadedFileName}
             />
         } />
       </Routes>
     </div>
   );
-}
-
-// ⭐️ App 컴포넌트: 최상위에서 BrowserRouter로 감싸 라우팅 환경 제공
-export default function App() {
-    return (
-        <Router>
-            <AppContent />
-        </Router>
-    );
 }

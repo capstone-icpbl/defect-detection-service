@@ -32,7 +32,7 @@ function CodeInput({ onAccessSubmit, isLoading, error }) {
         <form className={styles.inputForm} onSubmit={handleSubmit}>
             <section className={styles.inputSection} aria-labelledby="code-input-title">
                 {/* textarea 대신 input type="text"를 사용하여 단일 코드 입력을 받습니다.
-                  maxLength를 10으로 설정하여 코드 길이를 제한합니다.
+                  maxLength를 15으로 설정하여 코드 길이를 제한합니다.
                 */}
                 <input 
                     type="text"
@@ -41,7 +41,7 @@ function CodeInput({ onAccessSubmit, isLoading, error }) {
                     placeholder="여기에 접속 코드를 입력하세요 (예: ABCDEFGHIJ)"
                     value={accessCode}
                     onChange={(e) => setAccessCode(e.target.value)}
-                    maxLength={10} 
+                    maxLength={15}  // 코드 길이 제한
                     aria-label="프로젝트 접속 코드 입력"
                     disabled={isLoading}
                 />
