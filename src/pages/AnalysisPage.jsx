@@ -1,14 +1,16 @@
-import React, { useState, useRef } from 'react';
-import ProjectImage from '../components/ProjectImage'; 
-// 기존 스타일(UploadPage)을 재사용하여 디자인 통일성 유지
-import styles from './UploadPage.module.css'; 
+import React, { useState } from 'react';
+import ProjectImage from '../components/ProjectImage';
+import ImageUploadArea from '../components/ImageUploadArea'; // ⭐️ 업로드 컴포넌트
+import HistoryList from '../components/HistoryList';         // ⭐️ 히스토리 컴포넌트
+import styles from './AnalysisPage.module.css';
 
-// 1. [좌측] 이미지 뷰어 섹션 (바운딩 박스 기능 포함)
+const BASE_URL = 'http://127.0.0.1:5000'; // 백엔드 주소
+
+// 1. [좌측] 이미지 뷰어 섹션 (SVG 오버레이 포함)
 const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
     const [imgSize, setImgSize] = useState({ w: 0, h: 0 });
     const detections = analysisResult?.details || [];
 
-    // 이미지 로드 시 원본 크기 저장 (SVG 좌표 매핑용)
     const handleImageLoad = (e) => {
         setImgSize({
             w: e.target.naturalWidth,
@@ -17,40 +19,18 @@ const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
     };
 
     return (
-        <section style={{ flex: 2, display: 'flex', flexDirection: 'column', minWidth: '300px' }}>
-            <div className={styles.uploadPreview} style={{ 
-                border: 'none', padding: '20px', backgroundColor: '#fff',
-                height: '100%', justifyContent: 'flex-start', cursor: 'default' 
-            }}>
-                <h3 className={styles.historyTitle} style={{ alignSelf: 'flex-start', fontSize: '18px', marginBottom: '20px' }}>
-                    🔍 분석 대상 이미지
-                </h3>
+        <section className={styles.imageSection}>
+            <div className={styles.imageCard}>
+                <h3 className={styles.sectionTitle}>🔍 분석 대상 이미지</h3>
                 
-                {/* 이미지 영역 */}
-                <div style={{ 
-                    width: '100%', 
-                    minHeight: '300px', 
-                    backgroundColor: '#f8f9fa', 
-                    borderRadius: '8px', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center',
-                    border: '1px solid #eee', 
-                    overflow: 'hidden',
-                    position: 'relative'
-                }}>
+                <div className={styles.imageWrapper}>
                     {imageUrl ? (
-                        <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+                        <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                             <img 
                                 src={imageUrl} 
                                 onLoad={handleImageLoad}
                                 alt="Analysis Target" 
-                                style={{ 
-                                    maxWidth: '100%', 
-                                    maxHeight: '500px', 
-                                    objectFit: 'contain',
-                                    display: 'block'
-                                }} 
+                                className={styles.analyzedImage}
                             />
                             
                             {/* 바운딩 박스 그리기 (SVG Overlay) */}
@@ -98,34 +78,22 @@ const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
                         <span style={{ color: '#aaa' }}>이미지가 없습니다.</span>
                     )}
                 </div>
-                <p style={{ marginTop: '15px', color: '#666', fontSize: '14px' }}>
-                    파일명: {fileName || 'Unknown'}
-                </p>
+                <p className={styles.fileName}>파일명: {fileName || 'Unknown'}</p>
             </div>
         </section>
     );
 };
 
-// 2. [우측] 분류 섹션 (실제 AI 데이터 연동)
+// 2. [우측] 분류 섹션
 const ClassificationSection = ({ analysisResult }) => {
-    // 백엔드 데이터가 없으면 빈 배열 처리
     const details = analysisResult?.details || [];
 
     return (
-        <section style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: '280px' }}>
-            <div className={styles.historySection} style={{ 
-                margin: 0, 
-                width: '100%', 
-                height: '100%', 
-                maxWidth: 'none',
-                display: 'flex',
-                flexDirection: 'column'
-            }}>
-                <h2 className={styles.historyTitle} style={{ fontSize: '18px', marginBottom: '20px' }}>
-                    📊 흠집 유형 분류
-                </h2>
+        <section className={styles.classificationSection}>
+            <div className={styles.classificationCard}>
+                <h2 className={styles.sectionTitle}>📊 흠집 유형 분류</h2>
 
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', maxHeight: '500px' }}>
+                <div className={styles.resultList}>
                     {details.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '30px 0', color: '#888' }}>
                             <p>탐지된 흠집이 없습니다.</p>
@@ -133,38 +101,20 @@ const ClassificationSection = ({ analysisResult }) => {
                         </div>
                     ) : (
                         details.map((item, idx) => (
-                            <div key={idx} style={{ 
-                                padding: '15px', 
-                                backgroundColor: '#f8f9fa', 
-                                borderRadius: '12px',
-                                border: '1px solid #e9ecef',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'center'
-                            }}>
+                            <div key={idx} className={styles.resultItem}>
                                 <div>
-                                    <span style={{ 
-                                        display: 'inline-block', 
-                                        padding: '4px 8px', 
-                                        backgroundColor: '#fff0f0', 
-                                        color: '#d63384', 
-                                        borderRadius: '6px', 
-                                        fontWeight: 'bold', 
-                                        fontSize: '12px',
-                                        marginBottom: '4px',
-                                        textTransform: 'uppercase'
-                                    }}>
+                                    <span className={styles.classBadge}>
                                         {item.class}
                                     </span>
-                                    <div style={{ fontSize: '12px', color: '#888' }}>
+                                    <div className={styles.detectedLabel}>
                                         좌표: [{item.bbox[0]}, {item.bbox[1]}]
                                     </div>
                                 </div>
                                 <div style={{ textAlign: 'right' }}>
-                                    <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#333' }}>
+                                    <div className={styles.confidenceValue}>
                                         {Math.round(item.confidence * 100)}%
                                     </div>
-                                    <div style={{ fontSize: '10px', color: '#aaa' }}>신뢰도</div>
+                                    <div className={styles.confidenceLabel}>신뢰도</div>
                                 </div>
                             </div>
                         ))
@@ -175,37 +125,39 @@ const ClassificationSection = ({ analysisResult }) => {
     );
 };
 
-// 3. [하단] 결과 섹션
+// 3. [하단] 결과 섹션 (PDF 다운로드 구현)
 const ResultSection = ({ analysisResult }) => {
     const count = analysisResult?.details?.length || 0;
+    const analysisId = analysisResult?.analysis_id;
+
+    // ⭐️ PDF 다운로드 핸들러
+    const handleDownloadPdf = () => {
+        if (!analysisId) {
+            alert("분석 결과 ID가 없습니다.");
+            return;
+        }
+        // 새 창으로 PDF 리포트 URL 열기 (브라우저가 자동으로 다운로드 처리)
+        const pdfUrl = `${BASE_URL}/report/${analysisId}`;
+        window.open(pdfUrl, '_blank');
+    };
 
     return (
-        <section className={styles.historySection} style={{ 
-            width: '100%', 
-            maxWidth: '1200px', 
-            marginTop: '30px', 
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            padding: '30px',
-            flexWrap: 'wrap',
-            gap: '20px'
-        }}>
+        <section className={styles.finalResultSection}>
             <div style={{ flex: 1, minWidth: '200px' }}>
-                <h2 className={styles.historyTitle} style={{ marginBottom: '10px' }}>
+                <h2 className={styles.sectionTitle} style={{ marginBottom: '10px' }}>
                     ✅ 최종 분석 결과 요약
                 </h2>
-                <p style={{ color: '#666', fontSize: '16px' }}>
+                <p className={styles.resultText}>
                     {analysisResult 
-                        ? `분석 ID #${analysisResult.analysis_id} 완료 - 총 ${count}개의 결함이 발견되었습니다.` 
-                        : "분석 데이터를 불러오는 중입니다..."}
+                        ? `분석 ID #${analysisId} 완료 - 총 ${count}개의 결함이 발견되었습니다.` 
+                        : "데이터를 불러오는 중입니다..."}
                 </p>
             </div>
 
             <button 
-                className={styles.uploadButton} 
-                style={{ width: 'auto', padding: '12px 30px', fontSize: '16px' }}
-                onClick={() => alert('PDF 다운로드 기능은 추후 지원됩니다.')}
+                className={styles.pdfButton} 
+                onClick={handleDownloadPdf}
+                disabled={!analysisResult}
             >
                 📄 PDF 리포트 변환
             </button>
@@ -214,34 +166,40 @@ const ResultSection = ({ analysisResult }) => {
 };
 
 // 메인 페이지 컴포넌트
-function AnalysisPage({ projectData, imageUrl, fileName, analysisResult }) {
-    const { id: projectId } = projectData;
+function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHistory, onUploadSuccess, projectInternalId }) {
+    const { id: projectId, history } = projectData;
 
     return (
-        <main className={styles.uploadPage} role="main" style={{ alignItems: 'center', paddingBottom: '100px' }}> 
+        <main className={styles.pageContainer}>
             
             {/* 1. 상단 프로젝트 배너 */}
             <div className={styles.projectNameSection}>
                 <ProjectImage projectId={projectId} /> 
             </div>
+
+            {/* ⭐️ 2. 상단 업로드 영역 (결과 화면에서도 계속 업로드 가능) */}
+            {/* 스타일은 UploadPage와 유사하게 맞춤 */}
+            <div style={{ width: '90%', maxWidth: '800px', marginTop: '20px' }}>
+                 <ImageUploadArea 
+                    projectId={projectInternalId}
+                    fetchHistory={fetchHistory}
+                    onUploadSuccess={onUploadSuccess}
+                />
+            </div>
             
-            {/* 2. 메인 컨텐츠 영역 (좌우 2열 구조) */}
-            <div style={{ 
-                display: 'flex', 
-                flexDirection: 'row', 
-                gap: '30px', 
-                width: '90%', 
-                maxWidth: '1200px', 
-                marginTop: '30px',
-                flexWrap: 'wrap' // 모바일 대응
-            }}>
-                {/* analysisResult를 전달하여 바운딩 박스 그림 */}
+            {/* 3. 메인 컨텐츠 영역 (좌우 2열 구조) */}
+            <div className={styles.contentContainer}>
                 <ImageSection imageUrl={imageUrl} fileName={fileName} analysisResult={analysisResult} />
                 <ClassificationSection analysisResult={analysisResult} />
             </div>
 
-            {/* 3. 하단 결과 섹션 */}
+            {/* 4. 하단 결과 요약 및 PDF 버튼 */}
             <ResultSection analysisResult={analysisResult} />
+
+            {/* ⭐️ 5. 최하단 히스토리 목록 */}
+            <div style={{ width: '90%', maxWidth: '1200px', marginTop: '30px' }}>
+                 <HistoryList history={history} />
+            </div>
 
             {/* 모바일 대응 스타일 */}
             <style>{`
