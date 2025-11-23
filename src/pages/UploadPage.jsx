@@ -96,7 +96,7 @@ function UploadPage({ projectData, fetchHistory, onUploadSuccess }) {
             
             {/* 3. 이미지 업로드 영역 배치 */}
             <ImageUploadArea 
-                projectId={projectId}
+                projectId={projectInternalId}
                 fetchHistory={fetchHistory} // 업로드 성공 시 히스토리 갱신을 위해 전달
                 onUploadSuccess={onUploadSuccess} // ⭐️ App.jsx에서 받은 prop 전달
             /> 
