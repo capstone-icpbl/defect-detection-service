@@ -16,13 +16,15 @@ const UploadPage = ({ projectData, fetchHistory, onUploadSuccess, projectInterna
             
             {/* 2. 이미지 업로드 영역 (공통 컴포넌트로 교체하여 로직 통일) */}
             <div style={{ marginTop: '30px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <ImageUploadArea 
-                    projectId={projectInternalId}
-                    fetchHistory={fetchHistory}
-                    onUploadSuccess={onUploadSuccess}
-                />
+                <div style={{ width: '90%', maxWidth: '800px' }}>
+                    <ImageUploadArea 
+                        projectId={projectInternalId}
+                        fetchHistory={fetchHistory}
+                        onUploadSuccess={onUploadSuccess}
+                    />
+                </div>
             </div>
-
+            
             {/* 3. 하단 히스토리 목록 */}
             <div style={{ width: '90%', maxWidth: '800px', marginTop: '40px' }}>
                 <HistoryList history={history} onSelectHistory={onSelectHistory} />

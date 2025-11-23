@@ -179,11 +179,13 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
 
             {/* 2. 상단 업로드 영역 (ImageUploadArea 재사용) */}
             <div style={{ marginTop: '30px', width: '100%', display: 'flex', justifyContent: 'center' }}>
-                <ImageUploadArea 
-                    projectId={projectInternalId}
-                    fetchHistory={fetchHistory}
-                    onUploadSuccess={onUploadSuccess}
-                />
+                <div>
+                    <ImageUploadArea 
+                        projectId={projectInternalId}
+                        fetchHistory={fetchHistory}
+                        onUploadSuccess={onUploadSuccess}
+                    />
+                </div>
             </div>
             
             {/* 3. 메인 컨텐츠 영역 (좌우 2열 구조) */}
@@ -196,8 +198,10 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
             <ResultSection analysisResult={analysisResult} />
             
             {/* 5. 최하단 히스토리 목록 */}
-            <div style={{ width: '90%', maxWidth: '800px', marginTop: '40px' }}>
+            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', marginTop: '30px' }}>
+                <div style={{ width: '90%', maxWidth: '1200px' }}>
                     <HistoryList history={history} onSelectHistory={onSelectHistory} />
+                </div>
             </div>
                 
 
