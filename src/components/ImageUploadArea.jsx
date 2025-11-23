@@ -1,7 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-// 수정됨: 경로 문제를 피하기 위해 같은 폴더 내의 전용 CSS 모듈 사용
-import styles from './ImageUploadArea.module.css';
+import styles from '../pages/UploadPage.module.css';
 
 const BASE_URL = 'http://127.0.0.1:5000';
 
@@ -67,7 +66,7 @@ function ImageUploadArea({ projectId, fetchHistory, onUploadSuccess }) {
         }
 
         setIsUploading(true);
-        setUploadStatus({ type: 'empty', message: 'AI 분석 중입니다...' });
+        setUploadStatus({ type: 'empty' }); // 분석 중입니다.. 없앰
 
         try {
             // Step 1: 이미지 업로드 (/predict)

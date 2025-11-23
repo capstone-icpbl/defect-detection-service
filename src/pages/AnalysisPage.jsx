@@ -178,13 +178,21 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
             </div>
 
             {/* 2. 상단 업로드 영역 (ImageUploadArea 재사용) */}
-            <div style={{ width: '90%', maxWidth: '800px', marginTop: '20px' }}>
-                 <ImageUploadArea 
-                    projectId={projectInternalId}
-                    fetchHistory={fetchHistory}
-                    onUploadSuccess={onUploadSuccess}
-                />
+            <div style={{
+                width: '100%',
+                display: 'flex', 
+                justifyContent: 'center', 
+                marginTop: '20px' 
+            }}>
+                <div style={{ width: '90%', maxWidth: '800px', marginTop: '20px' }}>
+                    <ImageUploadArea 
+                        projectId={projectInternalId}
+                        fetchHistory={fetchHistory}
+                        onUploadSuccess={onUploadSuccess}
+                    />
+                </div>
             </div>
+
             
             {/* 3. 메인 컨텐츠 영역 (좌우 2열 구조) */}
             <div className={styles.contentContainer}>
@@ -196,9 +204,18 @@ function AnalysisPage({ projectData, imageUrl, fileName, analysisResult, fetchHi
             <ResultSection analysisResult={analysisResult} />
 
             {/* 5. 최하단 히스토리 목록 */}
-            <div style={{ width: '90%', maxWidth: '1200px', marginTop: '30px' }}>
-                 <HistoryList history={history} />
+            <div style={{
+                width: '100%', 
+                display: 'flex', 
+                justifyContent: 'center', 
+                marginTop: '30px' 
+            }}>
+                <div style={{ width: '90%', maxWidth: '1200px', marginTop: '30px' }}>
+                    <HistoryList history={history} />
+                </div>
+
             </div>
+                
 
             {/* 모바일 대응 스타일 */}
             <style>{`
