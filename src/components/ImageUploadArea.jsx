@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styles from '../pages/UploadPage.module.css';
 
-const BASE_URL = 'http://52.78.156.240:5000';
+const BASE_URL = '/api';
 
 const makeApiCallWithRetry = async (url, options, maxRetries = 3) => {
     let lastError = null;

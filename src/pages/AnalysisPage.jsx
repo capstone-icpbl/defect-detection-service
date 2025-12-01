@@ -4,7 +4,7 @@ import ImageUploadArea from '../components/ImageUploadArea';
 import HistoryList from '../components/HistoryList';
 import styles from './AnalysisPage.module.css';
 
-const BASE_URL = 'http://52.78.156.240:5000';
+const BASE_URL = '/api';
 
 // 1. [좌측] 이미지 뷰어 섹션 (SVG 오버레이 기능 포함)
 const ImageSection = ({ imageUrl, fileName, analysisResult }) => {
