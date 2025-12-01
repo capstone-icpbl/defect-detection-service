@@ -184,7 +184,7 @@ def index():
     return "AI Server Running (Style Fixed)"
 
 # 1. 접속
-@app.route('/access', methods=['POST', 'OPTIONS'])
+@app.route('/api/access', methods=['POST', 'OPTIONS'])
 def access_project():
     if request.method == 'OPTIONS': return '', 204
     try:
@@ -214,7 +214,7 @@ def access_project():
         return jsonify({"result": "error", "message": str(e)}), 500
 
 # 1.5 히스토리
-@app.route('/history', methods=['POST', 'OPTIONS'])
+@app.route('/api/history', methods=['POST', 'OPTIONS'])
 def get_history():
     if request.method == 'OPTIONS': return '', 204
     try:
@@ -226,7 +226,7 @@ def get_history():
         return jsonify({"result": "error", "message": str(e)}), 500
 
 # 2. 분석 요청
-@app.route('/predict', methods=['POST', 'OPTIONS'])
+@app.route('/api/predict', methods=['POST', 'OPTIONS'])
 def predict():
     if request.method == 'OPTIONS': return '', 204
     if 'image' not in request.files: return jsonify({"error": "No Image"}), 400
@@ -257,7 +257,7 @@ def predict():
         return jsonify({"result": "error", "message": str(e)}), 500
 
 # 3. 결과 조회
-@app.route('/result/<int:analysis_id>', methods=['GET', 'OPTIONS'])
+@app.route('/api/result/<int:analysis_id>', methods=['GET', 'OPTIONS'])
 def get_result(analysis_id):
     if request.method == 'OPTIONS': return '', 204
     try:
@@ -299,7 +299,7 @@ def get_result(analysis_id):
         return jsonify({"status": "processing", "error": str(e)})
 
 # 4. 리포트 (색상 로직 복구됨)
-@app.route('/report/<int:analysis_id>', methods=['GET'])
+@app.route('/api/report/<int:analysis_id>', methods=['GET'])
 def get_report(analysis_id):
     result = db.session.get(AnalysisResult, analysis_id)
     if not result or result.status != 'completed':
