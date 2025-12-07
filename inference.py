@@ -1,9 +1,29 @@
 from ultralytics import YOLO
 import json
 import numpy as np
+import requests
+from PIL import Image
+import io
+import warnings
 import os
 
+# [추가] 불필요한 경고 메시지 무시
+warnings.filterwarnings('ignore')
+# [추가] YOLO 로그 출력 최소화 (True로 하면 너무 많이 뜸)
+os.environ['YOLO_VERBOSE'] = 'False'
+
 model = YOLO("best.pt")
+
+# --- 1) 이미지 다운로드 헬퍼 ---
+def load_image_from_url(url):
+    try:
+        response = requests.get(url, stream=True, timeout=10)
+        response.raise_for_status()
+        img = Image.open(io.BytesIO(response.content))
+        return img
+    except Exception as e:
+        print(f"❌ 이미지 다운로드 실패: {e}")
+        return None
 
 # --- 1) 심각도 계산 로직 (가중치 상향 조정) ---
 def calculate_severity(detections):
@@ -58,10 +78,18 @@ def run_inference(image_path_or_url):
     print(f"\n📸 [DEBUG] 밸런스 패치된 분석 시작 (Threshold: 0.3)")
     
     try:
-        results = model(image_path_or_url, conf=0.3, verbose=False) 
+        # URL이면 다운로드
+        if isinstance(image_path_or_url, str) and image_path_or_url.startswith("http"):
+            source = load_image_from_url(image_path_or_url)
+            if source is None:
+                return json.dumps({"summary": {"grade": "Error"}, "detections": []}, ensure_ascii=False)
+        else:
+            source = image_path_or_url
+
+        # 추론 실행 (verbose=False, stream=False 명시)
+        results = model(source, conf=0.3, imgsz=1280, verbose=False, stream=False) 
 
         detections = []
-        
         for r in results:
             for box in r.boxes:
                 cls_id = int(box.cls[0])
