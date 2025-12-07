@@ -58,7 +58,7 @@ def run_inference(image_path_or_url):
     print(f"\n📸 [DEBUG] 밸런스 패치된 분석 시작 (Threshold: 0.3)")
     
     try:
-        results = model(image_path_or_url, conf=0.3) 
+        results = model(image_path_or_url, conf=0.3, verbose=False) 
 
         detections = []
         
